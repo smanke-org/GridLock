@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         listenForDebugCommands()
         HotKeyCenter.shared.perform = { id in Actions.shared.perform(shortcut: id) }
         HotKeyCenter.shared.apply()
+        Actions.shared.startInteraction()
         ShortcutsLensReport.start { HotKeyCenter.shared.reportedShortcuts }
         WelcomeWindow.shared.onGranted = { [weak self] in self?.statusItem.updateIcon() }
         launchAtLogin.enableOnFirstRun()
@@ -149,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let after = w.flatMap { AXWindows.frame(of: $0.element) }
             Diagnostics.note("debug: snap \(name) \(w?.appName ?? "none") → \(after.map { "\($0)" } ?? "nil")")
         case ("undo", "last"): Actions.shared.undo()
-        default: Diagnostics.note("debug: unknown command \(command)")
+        default: if !Actions.shared.runDebugCommand(parts[0], parts[1]) { Diagnostics.note("debug: unknown command \(command)") }
         }
     }
 }
@@ -160,12 +161,7 @@ extension Actions {
         switch id {
         case "grid": showGrid()
         case "undo": undo()
-        default:
-            if id.hasPrefix("zone."), let zone = Actions.namedZones[String(id.dropFirst(5))] {
-                snapFrontmost(to: zone)
-            } else {
-                Diagnostics.note("shortcut \(id) has no action")
-            }
+        default: performCatalog(shortcut: id)
         }
     }
 }

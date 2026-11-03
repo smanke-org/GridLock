@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import GridLockKit
 
 /// Everything GridLock can do to a window, in one place, so the menu, shortcuts, URLs,
@@ -11,8 +12,16 @@ final class Actions {
     var desks: DeskTracker!
 
     /// Shows the grid over the display holding the frontmost window. Filled in by the grid
-    /// overlay (S-003); until then it says so in the log.
+    /// overlay at launch (`startInteraction`).
     var showGridHandler: (() -> Void)?
+
+    /// True while the grid or the palette is on screen; automatic updates wait for it.
+    var isOverlayOpen = false
+
+    /// Starts the hands-on parts: the grid behind Show Grid.
+    func startInteraction() {
+        showGridHandler = { GridOverlay.shared.toggle() }
+    }
 
     func showGrid() {
         guard AXWindows.isTrusted else { return WelcomeWindow.shared.show() }
@@ -48,6 +57,41 @@ final class Actions {
 
     func undo() {
         if !WindowMover.shared.undo() { Diagnostics.note("undo: nothing to undo") }
+    }
+
+    /// A global shortcut that `perform(shortcut:)` doesn't handle itself.
+    func performCatalog(shortcut id: String) {
+        if id.hasPrefix("zone."), let zone = Actions.namedZones[String(id.dropFirst(5))] {
+            snapFrontmost(to: zone)
+        } else {
+            Diagnostics.note("shortcut \(id) has no action")
+        }
+    }
+
+    /// Debug-hook commands for the grid and the palette (see AppDelegate). False when the
+    /// command isn't one of these.
+    func runDebugCommand(_ verb: String, _ argument: String) -> Bool {
+        switch (verb, argument) {
+        case ("grid", "dump"):
+            Diagnostics.note("debug: \(GridOverlay.shared.dump())")
+        case ("grid", "close"):
+            GridOverlay.shared.close()
+        case ("grid", "snap"):
+            GridOverlay.shared.snap()
+        case ("grid", let key) where key.hasPrefix("key-"):
+            // grid:key-right, grid:key-shift-left, grid:key-option-shift-up
+            let parts = key.dropFirst(4).split(separator: "-")
+            let codes = ["left": kVK_LeftArrow, "right": kVK_RightArrow, "up": kVK_UpArrow, "down": kVK_DownArrow]
+            guard let last = parts.last, let code = codes[String(last)] else { return false }
+            var flags: NSEvent.ModifierFlags = []
+            if parts.contains("shift") { flags.insert(.shift) }
+            if parts.contains("option") { flags.insert(.option) }
+            if let action = GridOverlay.action(keyCode: code, flags: flags) { GridOverlay.shared.handle(action) }
+            Diagnostics.note("debug: \(GridOverlay.shared.dump())")
+        default:
+            return false
+        }
+        return true
     }
 
     /// Zones that URLs, shortcuts and the debug hook can name.
