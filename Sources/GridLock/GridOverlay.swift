@@ -72,13 +72,14 @@ final class GridOverlay {
             MainActor.assumeIsolated {
                 guard let self, let app, app.processIdentifier != self.window?.pid,
                       app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
-                self.close()
+                self.close(returningFocus: false)
             }
         }
     }
 
-    /// Closes without moving anything.
-    func close() {
+    /// Closes without moving anything. The keys go back to the window's app, unless the
+    /// user has just switched to another one.
+    func close(returningFocus: Bool = true) {
         guard isShowing else { return }
         for s in screens { s.panel.disappear() }
         screens = []
@@ -86,7 +87,7 @@ final class GridOverlay {
         if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
         activationObserver = nil
         // The panel had the keys; hand them back to the app whose window it was.
-        if let pid = window?.pid { NSRunningApplication(processIdentifier: pid)?.activate() }
+        if returningFocus, let pid = window?.pid { NSRunningApplication(processIdentifier: pid)?.activate() }
         window = nil
     }
 

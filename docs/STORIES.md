@@ -47,7 +47,7 @@ UX:
 - States: no frontmost window (Finder desktop): a small label "No window to place" shows and fades after 1.5 s; full-screen window: "GridLock can't move full-screen windows"; no access: menu shows "Grant Access…" instead of opening the grid
 - Words: label "Safari · 1280 × 800 · columns 1–4, rows 1–3"; long window titles truncate in the middle
 - Access: whole flow keyboard-only; VoiceOver announces "Grid, 6 columns by 4 rows, selection columns 1 to 4, rows 1 to 3"; Reduce Motion: no fade
-Status: todo
+Status: done
 
 ### S-004 Draw a new spot on the grid
 As the user, I drag across grid cells and the window moves there when I let go.
@@ -64,7 +64,7 @@ UX:
 - States: target smaller than the app's minimum size: ghost shows the size the app will accept; done: grid fades out as the window moves
 - Words: size label "960 × 540"; no buttons
 - Access: color plus a 2 pt outline, never color alone; selection readable in Increase Contrast
-Status: todo
+Status: done
 
 ### S-005 Move the selection with the keyboard
 As the user, I use the arrow keys to move the selection, Shift-arrows to grow it, Option-Shift-arrows to shrink it, and Return to apply.
@@ -80,7 +80,7 @@ UX:
 - States: at an edge, the key does nothing (no beep, no wrap)
 - Words: hint bar "←↑↓→ Move   ⇧ Grow   ⌥⇧ Shrink   ↩ Snap   esc Cancel"
 - Access: every mouse action has a key; VoiceOver re-announces the selection after each key
-Status: todo
+Status: done
 
 ### S-006 Change a monitor's grid size
 As the user, I change the grid's columns and rows for one monitor at the current desk.
@@ -119,7 +119,7 @@ UX:
 - States: nothing to undo: "Undo Move" disabled; window closed since: skipped silently, the next one is undone
 - Words: "Undo Move of “<app>”"; tooltip none (menu)
 - Access: the shortcut shows in the menu
-Status: todo
+Status: done
 
 ## M2 Drag palette
 
@@ -129,7 +129,7 @@ Depends: S-001
 Acceptance:
 - [self] A CGEvent drag of a test window's title bar logs "drag began" with the window's app; a drag that only selects text in a document does not.
 - [manual] No noticeable lag while dragging windows in Safari, Finder and Xcode.
-Status: todo
+Status: done
 
 ### S-011 Open the palette at the top edge
 As the user, I drag a window into the top edge of a display and a palette of layout thumbnails drops down under the cursor.
@@ -145,7 +145,7 @@ UX:
 - States: palette empty for this display: one thumbnail "Edit Palette…" that opens Settings › Palette; more layouts than fit: wraps to a second row, never scrolls mid-drag
 - Words: layout captions under thumbnails ("Halves", "Columns × 3", "Grid 3 × 2", custom names); no title
 - Access: Reduce Motion: fades instead of dropping; thumbnails readable in Increase Contrast
-Status: todo
+Status: done
 
 ### S-012 Drop on a zone
 As the user, I drag over a zone in a thumbnail, see where the window will go, and let go to snap it there.
@@ -161,7 +161,7 @@ UX:
 - States: zone smaller than the app's minimum size: preview shows what the app will allow
 - Words: none beyond captions; the preview shows "960 × 1080"
 - Access: zone fill plus outline (not color alone)
-Status: todo
+Status: done
 
 ### S-013 Warn about macOS edge tiling
 As the user, if macOS's own "Drag windows to screen edges to tile" is on, GridLock tells me it fights the palette and offers to open the setting.
@@ -170,7 +170,7 @@ Depends: S-011
 Acceptance:
 - [self] The setting is read from `com.apple.WindowManager`; GridLock never writes it.
 - [snap] A yellow note in General with "Open Desktop & Dock Settings".
-Status: todo
+Status: done
 
 ## M3 Desks — every desk remembers
 
@@ -239,14 +239,14 @@ Acceptance:
 - [snap] Shortcuts pane: every built-in layout zone with a recorder; defaults ⌃⌥←/→ halves, ⌃⌥↑ maximize, ⌃⌥C center, ⌃⌥G grid, ⌃⌥Z undo.
 - [unit] A shortcut taken by another GridLock action is refused with the clashing action's name.
 - [self] Shortcuts are reported to ShortcutsLens (`reportedShortcuts`).
-Status: todo
+Status: done
 
 ### S-031 Cycle sizes with a repeated shortcut
 As the user, I press ⌃⌥← again and the window cycles through left half, left two-thirds, left third.
 Depends: S-030
 Acceptance:
 - [unit] The cycle follows the order set in Settings and resets after 2 seconds or another window.
-Status: todo
+Status: done
 
 ### S-032 Send a window to the next display
 As the user, I press ⌃⌥⌘→ and the window moves to the next display, keeping its cells on that display's grid.
@@ -254,7 +254,7 @@ Depends: S-030
 Acceptance:
 - [unit] Cells map proportionally when the grids differ (4 of 6 columns → 8 of 12).
 - [self] Order follows the displays left to right, wrapping.
-Status: todo
+Status: done
 
 ## M5 System
 
