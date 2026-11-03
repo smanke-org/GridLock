@@ -120,7 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    /// `gridlock://` URLs (from ToolHUD, Shortcuts or a script): `grid`, `undo`,
+    /// `gridlock://` URLs (from ToolHUD, Shortcuts or a script): `grid`, `undo`, `palette`,
     /// `snap?zone=left-half` (or `snap-left-half`), `settings`; see `URLAction`. They act
     /// on the frontmost window of another app.
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -128,6 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch action {
             case .grid: Actions.shared.showGrid()
             case .undo: Actions.shared.undo()
+            case .palette: PaletteOverlay.shared.toggleForFrontmostWindow()
             case .snap(let name):
                 if let zone = name.flatMap({ Actions.namedZones[$0] }) {
                     Actions.shared.snapFrontmost(to: zone)
@@ -153,7 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Development affordance, only with GRIDLOCK_DEBUG=1. A distributed notification
     /// `com.smanke.GridLock.debug` whose object is a command runs it in the installed,
     /// permission-holding build; results go to ~/Library/Logs/GridLock.log. Commands:
-    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|help|<tab>`, `help:<topic>`, `grid:show`,
+    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|help|<tab>`, `help:<topic>`, `grid:show`, `palette:open`,
     /// `snap:<zone name>`, `undo:last`, `desk:notify` (the new-desk notification for this desk).
     private func listenForDebugCommands() {
         guard Diagnostics.isEnabled else { return }
@@ -180,6 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case ("help", let topic): HelpWindow.shared.show(topic: topic)
         case ("show", let tab): SettingsWindow.shared.show(tab: tab)
         case ("grid", "show"): Actions.shared.showGrid()
+        case ("palette", "open"): PaletteOverlay.shared.toggleForFrontmostWindow()
         case ("snap", let name):
             guard let zone = Actions.namedZones[name] else { return Diagnostics.note("debug: unknown zone \(name)") }
             let w = WindowMover.shared.frontmostWindow()
@@ -199,6 +201,7 @@ extension Actions {
         switch id {
         case "grid": showGrid()
         case "undo": undo()
+        case "palette": PaletteOverlay.shared.toggleForFrontmostWindow()
         default: performCatalog(shortcut: id)
         }
     }

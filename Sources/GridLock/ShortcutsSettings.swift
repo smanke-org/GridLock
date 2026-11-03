@@ -1,3 +1,4 @@
+import AppKit
 import GridLockKit
 import SwiftUI
 
@@ -8,7 +9,7 @@ struct ShortcutsSettings: View {
     /// The refused key and why, under the row that tried it.
     @State private var clash: (id: String, message: String)?
 
-    private static let categories = ["Grid", "Zones", "Displays"]
+    private static let categories = ["Grid", "Palette", "Zones", "Displays"]
 
     var body: some View {
         Form {
@@ -16,6 +17,7 @@ struct ShortcutsSettings: View {
                 Section(category) {
                     ForEach(ShortcutCatalog.all.filter { $0.category == category }, id: \.id) { item in
                         row(item)
+                        if item.id == "palette" { dragKeys }
                         if category == "Zones", item.id == "zone.bottom-half" {
                             Picker("Pressed again", selection: $cycleOrder) {
                                 ForEach(SizeCycle.Order.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -30,6 +32,58 @@ struct ShortcutsSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// The keys that, held while dragging a window, open the palette next to the pointer.
+    @ViewBuilder
+    private var dragKeys: some View {
+        let settings = AppSettings.shared
+        LabeledContent("Hold while dragging") {
+            HStack(spacing: 4) {
+                ForEach(AppSettings.dragModifierChoices, id: \.rawValue) { key in
+                    Toggle(isOn: Binding(
+                        get: { settings.paletteModifiers.contains(key) },
+                        set: { on in
+                            if on { settings.paletteModifiers.insert(key) } else { settings.paletteModifiers.remove(key) }
+                        })) {
+                        Text(Self.symbol(key)).frame(minWidth: 18)
+                    }
+                    .toggleStyle(.button)
+                    .accessibilityLabel(Self.name(key))
+                    .help("Hold \(Self.name(key)) while dragging a window to open the palette")
+                }
+            }
+        }
+        Caption(settings.paletteModifiers.isEmpty
+                ? "Off: drag a window to the top edge of a display to open the palette."
+                : "Hold \(Self.symbols(settings.paletteModifiers)) while dragging a window to open the palette right away, above the pointer, without going to the top edge. Let go of the keys to close it.")
+        if settings.paletteModifiers == .control {
+            Label("⌃ alone turns a click into a right-click: press it after you start dragging.", systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
+    }
+
+    private static func symbol(_ key: NSEvent.ModifierFlags) -> String {
+        switch key {
+        case .control: "⌃"
+        case .option: "⌥"
+        case .shift: "⇧"
+        default: "⌘"
+        }
+    }
+
+    private static func name(_ key: NSEvent.ModifierFlags) -> String {
+        switch key {
+        case .control: "Control"
+        case .option: "Option"
+        case .shift: "Shift"
+        default: "Command"
+        }
+    }
+
+    private static func symbols(_ keys: NSEvent.ModifierFlags) -> String {
+        AppSettings.dragModifierChoices.filter(keys.contains).map(symbol).joined()
     }
 
     @ViewBuilder

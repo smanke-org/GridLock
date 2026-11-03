@@ -120,6 +120,20 @@ public struct PaletteGeometry: Equatable, Sendable {
         return CGRect(x: x.rounded(), y: visible.minY + Self.drop, width: size.width, height: size.height)
     }
 
+    /// Space between the cursor and a palette opened next to it.
+    public static let lift: CGFloat = 32
+
+    /// The palette's frame when a held modifier opens it mid-drag (global top-left):
+    /// centered on the cursor with its bottom `lift` above it, or below the cursor when
+    /// there's no room above, kept inside the display's usable area.
+    public func frame(near cursor: CGPoint, visible: CGRect) -> CGRect {
+        let inset: CGFloat = 8
+        let x = min(max(cursor.x - size.width / 2, visible.minX + inset), visible.maxX - inset - size.width)
+        var y = cursor.y - Self.lift - size.height
+        if y < visible.minY + inset { y = min(cursor.y + Self.lift, visible.maxY - inset - size.height) }
+        return CGRect(x: x.rounded(), y: y.rounded(), width: size.width, height: size.height)
+    }
+
     /// The thumbnail and zone under a palette-local point. Zones may overlap (custom layouts):
     /// the smallest one under the point wins, so a small zone inside a big one can be reached.
     public func hit(_ point: CGPoint, zones: [[UnitRect]]) -> (entry: Int, zone: Int)? {

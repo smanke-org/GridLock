@@ -33,6 +33,7 @@ final class Actions {
 
     func showGrid() {
         guard AXWindows.isTrusted else { return WelcomeWindow.shared.show() }
+        PaletteOverlay.shared.close(returningFocus: false)
         if let showGridHandler { showGridHandler() } else { Diagnostics.note("show grid: overlay not built yet") }
     }
 

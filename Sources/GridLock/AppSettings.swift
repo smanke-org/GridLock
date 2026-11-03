@@ -13,7 +13,11 @@ final class AppSettings {
     private enum Key {
         static let confirmQuit = "confirmQuit"
         static let shortcuts = "shortcuts"
+        static let paletteModifiers = "paletteModifiers"
     }
+
+    /// The keys that may be held to open the palette mid-drag.
+    static let dragModifierChoices: [NSEvent.ModifierFlags] = [.control, .option, .shift, .command]
 
     /// "Ask before quitting" in General.
     var confirmQuit: Bool {
@@ -38,6 +42,12 @@ final class AppSettings {
         didSet { AppPresence.showInMenuBar = showInMenuBar }
     }
 
+    /// Held while dragging a window, these open the palette at once next to the pointer
+    /// (Settings › Shortcuts). Empty: only the top edge opens it.
+    var paletteModifiers: NSEvent.ModifierFlags {
+        didSet { defaults.set(Int(paletteModifiers.rawValue), forKey: Key.paletteModifiers) }
+    }
+
     /// Shortcut id → key. A missing id means "the default"; an id stored as null means the
     /// user cleared it.
     private var shortcuts: [String: HotKey?]
@@ -47,6 +57,7 @@ final class AppSettings {
         showInDock = AppPresence.showInDock
         showInMenuBar = AppPresence.showInMenuBar
         shortcuts = Self.loadShortcuts(from: defaults)
+        paletteModifiers = Self.loadPaletteModifiers(from: defaults)
     }
 
     func shortcut(_ id: String) -> HotKey? {
@@ -68,6 +79,13 @@ final class AppSettings {
     func reload() {
         confirmQuit = defaults.object(forKey: Key.confirmQuit) as? Bool ?? true
         shortcuts = Self.loadShortcuts(from: defaults)
+        paletteModifiers = Self.loadPaletteModifiers(from: defaults)
+    }
+
+    /// ⌘ unless the user chose otherwise.
+    private static func loadPaletteModifiers(from defaults: UserDefaults) -> NSEvent.ModifierFlags {
+        guard let raw = defaults.object(forKey: Key.paletteModifiers) as? Int else { return .command }
+        return NSEvent.ModifierFlags(rawValue: UInt(raw)).intersection([.control, .option, .shift, .command])
     }
 
     private static func loadShortcuts(from defaults: UserDefaults) -> [String: HotKey?] {

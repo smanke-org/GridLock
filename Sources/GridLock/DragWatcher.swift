@@ -4,8 +4,8 @@ import Carbon.HIToolbox
 import GridLockKit
 
 /// Notices when another app's window is dragged by its title bar, opens the palette when the
-/// cursor rests at the top edge of a display, and snaps the window when it's let go over a
-/// zone.
+/// cursor rests at the top edge of a display (or at once while the drag keys are held), and
+/// snaps the window when it's let go over a zone.
 ///
 /// Kept cheap: a global mouse monitor does nothing on a click; on the first drag event it
 /// asks Accessibility once which window is under the press, then reads that window's frame a
@@ -46,6 +46,13 @@ final class DragWatcher {
             let code = Int(event.keyCode)
             MainActor.assumeIsolated { if code == kVK_Escape { DragWatcher.shared.escape() } }
         }) { monitors.append(m) }
+        // Pressing or letting go of the drag keys while the mouse is still sends no drag event.
+        if let m = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: { _ in
+            MainActor.assumeIsolated {
+                let watcher = DragWatcher.shared
+                if watcher.dragging != nil { watcher.follow(DragWatcher.cursor) }
+            }
+        }) { monitors.append(m) }
     }
 
     /// The cursor in global top-left coordinates.
@@ -69,7 +76,7 @@ final class DragWatcher {
     }
 
     private func dragged() {
-        guard let downAt, AXWindows.isTrusted, !GridOverlay.shared.isShowing else { return }
+        guard let downAt, AXWindows.isTrusted, !GridOverlay.shared.isShowing, !PaletteOverlay.shared.isOpenedByShortcut else { return }
         if dragging == nil {
             guard !gaveUp else { return }
             if candidate == nil {
@@ -100,14 +107,27 @@ final class DragWatcher {
     /// The cursor moved (or rested) during a window drag.
     private func follow(_ cursor: CGPoint) {
         let palette = PaletteOverlay.shared
+        let held = Self.dragKeysHeld
         if palette.isShowing {
-            if !palette.track(cursor) {
+            // Opened by the drag keys: letting go of them away from the palette closes it.
+            if case .modifier = palette.trigger, !held, !palette.isNear(cursor) {
+                palette.close()
+                dwell.reset()
+            } else if !palette.track(cursor) {
                 palette.close()
                 dwell.reset()
             }
             return
         }
         guard !dismissed, let display = Self.display(under: cursor) else { return }
+        if held {
+            dwellTimer?.invalidate()
+            dwellTimer = nil
+            palette.open(on: display, near: cursor)
+            _ = palette.track(cursor)
+            watchEscape()
+            return
+        }
         let now = ProcessInfo.processInfo.systemUptime
         if dwell.update(cursor: cursor, bounds: display.bounds, now: now) {
             dwellTimer?.invalidate()
@@ -187,6 +207,15 @@ final class DragWatcher {
         dismissed = false
         escapeTimer?.invalidate()
         escapeTimer = nil
+    }
+
+    /// Whether the keys chosen in Settings › Shortcuts (⌘ by default) are down. More keys
+    /// held as well still count.
+    private static var dragKeysHeld: Bool {
+        let wanted = AppSettings.shared.paletteModifiers
+        guard !wanted.isEmpty else { return false }
+        let now = NSEvent.ModifierFlags(rawValue: UInt(CGEventSource.flagsState(.combinedSessionState).rawValue))
+        return now.isSuperset(of: wanted)
     }
 
     private static func display(under point: CGPoint) -> LiveDisplay? {

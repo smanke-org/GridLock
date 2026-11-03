@@ -128,6 +128,7 @@ enum ShortcutCatalog {
         [
             Item(id: "grid", title: "Show Grid", category: "Grid", defaultKey: controlOption(kVK_ANSI_G, "G")),
             Item(id: "undo", title: "Undo Move", category: "Grid", defaultKey: controlOption(kVK_ANSI_Z, "Z")),
+            Item(id: "palette", title: "Open Palette", category: "Palette", defaultKey: controlOption(kVK_ANSI_P, "P")),
         ]
         + zones.map { name, title, key in Item(id: "zone." + name, title: title, category: "Zones", defaultKey: key) }
         + [

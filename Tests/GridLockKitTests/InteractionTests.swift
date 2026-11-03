@@ -61,6 +61,20 @@ struct GridKeyTests {
 }
 
 struct PaletteGeometryTests {
+    @Test func opensAboveTheCursorOrBelowWhenThereIsNoRoom() {
+        let g = PaletteGeometry(count: 3, aspect: 16.0 / 10, maxWidth: 800)
+        let visible = CGRect(x: 0, y: 30, width: 1600, height: 970)
+        let above = g.frame(near: CGPoint(x: 800, y: 600), visible: visible)
+        #expect(above.maxY == 600 - PaletteGeometry.lift)
+        #expect(abs(above.midX - 800) <= 1)
+        // Near the top there's no room above: it goes under the cursor instead.
+        let below = g.frame(near: CGPoint(x: 800, y: 60), visible: visible)
+        #expect(below.minY == 60 + PaletteGeometry.lift)
+        // Near a side it stays on the display.
+        let side = g.frame(near: CGPoint(x: 5, y: 600), visible: visible)
+        #expect(side.minX == 8)
+    }
+
     @Test func wrapsInsteadOfScrolling() {
         let g = PaletteGeometry(count: 7, aspect: 16.0 / 10, maxWidth: 500)
         // 102-pt thumbnails, 114 a step: four fit in 500.

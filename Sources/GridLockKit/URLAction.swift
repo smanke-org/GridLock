@@ -8,6 +8,8 @@ import Foundation
 public enum URLAction: Equatable, Sendable {
     case grid
     case undo
+    /// Open the palette for the frontmost window; a click on a zone snaps it.
+    case palette
     /// A zone name, checked by the app against its named zones.
     case snap(zone: String?)
     case settings
@@ -18,6 +20,7 @@ public enum URLAction: Equatable, Sendable {
         switch host {
         case "grid": self = .grid
         case "undo": self = .undo
+        case "palette": self = .palette
         case "snap":
             let zone = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "zone" }?.value
             self = .snap(zone: zone?.lowercased())

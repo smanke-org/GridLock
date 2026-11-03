@@ -53,6 +53,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(withTitle: "Show Grid", action: #selector(showGrid), target: self, shortcut: "grid")
             .showIcon("square.grid.3x3")
+        menu.addItem(withTitle: "Open Palette", action: #selector(openPalette), target: self, shortcut: "palette")
+            .showIcon("square.grid.3x1.below.line.grid.1x2")
         let undoTitle = WindowMover.shared.undoTitle
         let undo = menu.addItem(withTitle: undoTitle ?? "Undo Move", action: #selector(undoMove), target: self, shortcut: "undo")
         undo.showIcon("arrow.uturn.backward")
@@ -110,6 +112,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func grantAccess() { WelcomeWindow.shared.show() }
     @objc private func showGrid() { Actions.shared.showGrid() }
+    @objc private func openPalette() { PaletteOverlay.shared.toggleForFrontmostWindow() }
     @objc private func undoMove() { Actions.shared.undo() }
     @objc private func showDesks() { SettingsWindow.shared.show(tab: "Desks") }
     @objc private func showSettings() { SettingsWindow.shared.show() }

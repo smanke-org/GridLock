@@ -245,6 +245,7 @@ struct URLActionTests {
     @Test func readsEachAction() {
         #expect(action("gridlock://grid") == .grid)
         #expect(action("gridlock://undo") == .undo)
+        #expect(action("gridlock://palette?source=toolhud") == .palette)
         #expect(action("gridlock://settings") == .settings)
         #expect(action("gridlock://") == .settings)
         #expect(action("windowkeeper://grid") == nil)

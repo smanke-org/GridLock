@@ -172,6 +172,40 @@ Acceptance:
 - [snap] A yellow note in General with "Open Desktop & Dock Settings".
 Status: done
 
+### S-014 Open the palette with held keys mid-drag
+As the user, I hold a key while dragging a window so the palette opens right away next to the pointer, without pushing against the top edge (where Mission Control can open instead).
+Screens: settings-shortcuts
+Depends: S-011
+Acceptance:
+- [self] Holding the chosen keys (⌘ by default) during a title-bar drag opens the palette at once, its bottom 32 pt above the pointer (below it near the top of the display); extra keys held as well still count.
+- [self] Letting go of the keys away from the palette closes it; while they're held, distance never closes it. Esc closes it for the rest of the drag.
+- [unit] The frame stays inside the display's usable area.
+- [snap] Settings › Shortcuts › Palette: "Hold while dragging" with ⌃ ⌥ ⇧ ⌘ toggles, any combination; none turns it off. ⌃ alone shows a warning.
+- [manual] With ⌘ held, dragging Safari, Finder and Xcode windows never opens Mission Control.
+Status: done
+UX:
+- Flow: drag a title bar → hold ⌘ → palette appears above the pointer → move over a zone → let go of the mouse snaps; let go of ⌘ away from it closes
+- Surface: the same palette panel, placed at the pointer instead of the top edge
+- Words: "Hold while dragging", toggles with VoiceOver names Control, Option, Shift, Command; caption says what holding them does and that letting go closes it
+- Access: synced with settings sync; Help › The Palette › "Without the top edge"
+
+### S-015 Open Palette shortcut, then click a zone
+As the user, I press a shortcut, and the palette opens for the frontmost window; clicking a zone snaps that window.
+Screens: settings-shortcuts, palette
+Depends: S-011
+Acceptance:
+- [self] Open Palette (⌃⌥P by default; menu bar menu, `gridlock://palette`, ToolHUD) opens the palette at the top of the display holding the frontmost window, under the pointer when it's on that display.
+- [self] The window is the one in front when the shortcut is pressed; the palette takes the keys without activating GridLock, and gives them back when it closes.
+- [self] Hovering shows the drop preview; a click on a zone snaps the window and closes the palette; a click between thumbnails does nothing.
+- [self] Esc, a click anywhere else, switching apps, or the shortcut again closes it without moving anything. Show Grid closes it first.
+- [self] No window in front: "No window to place".
+Status: done
+UX:
+- Flow: ⌃⌥P → palette at the top → hover previews → click snaps → keys back to the window's app
+- Surface: the palette as a non-activating, clickable panel (a tool used once, then gone)
+- Words: menu item "Open Palette" with ⌃⌥P; ToolHUD "Open Palette"
+- Access: Esc closes; VoiceOver reads each thumbnail's layout name
+
 ## M3 Desks — every desk remembers
 
 ### S-020 Choose what the palette shows

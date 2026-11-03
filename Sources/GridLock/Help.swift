@@ -34,15 +34,23 @@ enum HelpBlock {
 @MainActor
 enum Help {
     /// `{shortcut:<id>}` shows the user's own key for a shortcut in `ShortcutCatalog`
-    /// (`{shortcut:grid}`, `{shortcut:zone.left-half}`).
+    /// (`{shortcut:grid}`, `{shortcut:zone.left-half}`); `{dragKeys}` the keys that open the
+    /// palette mid-drag.
     static func resolve(_ text: String) -> String {
-        guard text.contains("{shortcut:") else { return text }
-        var result = text
+        var result = text.replacingOccurrences(of: "{dragKeys}", with: dragKeys)
+        guard result.contains("{shortcut:") else { return result }
         while let open = result.range(of: "{shortcut:"), let close = result[open.upperBound...].firstIndex(of: "}") {
             let id = String(result[open.upperBound..<close])
             result.replaceSubrange(open.lowerBound...close, with: AppSettings.shared.shortcut(id)?.display ?? "(no shortcut set)")
         }
         return result
+    }
+
+    private static var dragKeys: String {
+        let keys = AppSettings.shared.paletteModifiers
+        guard !keys.isEmpty else { return "the keys you choose (none are set now)" }
+        let symbols: [(NSEvent.ModifierFlags, String)] = [(.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")]
+        return symbols.filter { keys.contains($0.0) }.map(\.1).joined()
     }
 
     /// The page each Settings pane's ? button opens.
@@ -58,7 +66,7 @@ enum Help {
 
     static var topics: [HelpTopic] { [
         HelpTopic(id: "getting-started", title: "Getting Started", symbol: "sparkles", blocks: [
-            .text("GridLock puts windows where you want them, two ways: drag a window to the top edge of a display and drop it on a layout in the palette, or press {shortcut:grid} and draw where it goes on the grid."),
+            .text("GridLock puts windows where you want them: drag a window to the top edge of a display (or hold {dragKeys} while dragging) and drop it on a layout in the palette; press {shortcut:palette} and click a layout in the palette; or press {shortcut:grid} and draw where it goes on the grid."),
             .text("Each set of displays you work at is a desk. GridLock recognizes a desk by its displays' serial numbers and keeps each display's grid and palette there, so the same display can have a different grid at home and at the office."),
             .heading("Allow access"),
             .text("To move and resize other apps' windows, GridLock needs access. Turn on GridLock in System Settings › Privacy & Security › Device Control and Data Access. Until then the menu bar icon shows a warning sign and the menu's first item is \"Grant Access…\"."),
@@ -90,8 +98,12 @@ enum Help {
                 ("Let go over a zone", "Snap the window into it"),
                 ("Drag away, or esc", "Close the palette; the window stays where you dragged it"),
             ]),
+            .heading("Without the top edge"),
+            .text("Pushing a window against the top edge can also open Mission Control, which offers to move the window to another desktop. To skip the edge, hold {dragKeys} while you drag: the palette opens right away, just above the pointer. Let go of the keys away from the palette to close it. Choose the keys in Settings › Shortcuts."),
+            .text("Or press {shortcut:palette} (Open Palette) with the window you want to place in front. The palette opens at the top of its display; move over a zone to see where the window will go, and click it to snap the window there. Esc, a click anywhere else, or {shortcut:palette} again closes it."),
             .heading("Choosing the layouts"),
             .text("Settings › Palette picks which layouts each display's palette shows at this desk, and in what order. Layouts in a family have a count (Columns × 3, Rows × 2, Grid 3 × 2), and a family can be in the palette more than once with different counts."),
+            .tip("With ⌘ as the key, press it once the drag has started: in some apps ⌘-clicking a window's title shows its folder path."),
             .tip("If macOS's own \"Drag windows to screen edges to tile\" is on, it competes with the palette. Settings › General says so and opens the right page of System Settings; GridLock never changes the setting itself."),
         ]),
 
@@ -116,6 +128,7 @@ enum Help {
             .keys([
                 ("{shortcut:grid}", "Show Grid"),
                 ("{shortcut:undo}", "Undo Move"),
+                ("{shortcut:palette}", "Open Palette, then click a zone"),
                 ("{shortcut:zone.left-half}", "Snap to the left half"),
                 ("{shortcut:zone.right-half}", "Snap to the right half"),
                 ("{shortcut:zone.maximize}", "Snap to the whole display"),
