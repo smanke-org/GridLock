@@ -61,7 +61,6 @@ final class GridOverlay {
         cells = GridMath.cells(for: target.frame, grid: screen.grid, visible: screen.display.visible)
         refresh()
         for (i, s) in screens.enumerated() { s.panel.appear(key: i == active) }
-        Actions.shared.isOverlayOpen = true
         announce()
         Diagnostics.note("grid: shown on \(screen.display.name) for \(target.appName) \(cells)")
 
@@ -84,7 +83,6 @@ final class GridOverlay {
         for s in screens { s.panel.disappear() }
         screens = []
         anchor = nil
-        Actions.shared.isOverlayOpen = false
         if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
         activationObserver = nil
         // The panel had the keys; hand them back to the app whose window it was.

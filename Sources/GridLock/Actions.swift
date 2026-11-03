@@ -16,11 +16,13 @@ final class Actions {
     var showGridHandler: (() -> Void)?
 
     /// True while the grid or the palette is on screen; automatic updates wait for it.
-    var isOverlayOpen = false
+    var isOverlayOpen: Bool { GridOverlay.shared.isShowing || PaletteOverlay.shared.isShowing }
 
-    /// Starts the hands-on parts: the grid behind Show Grid.
+    /// Starts the hands-on parts: the grid behind Show Grid, and watching for window drags
+    /// that open the palette.
     func startInteraction() {
         showGridHandler = { GridOverlay.shared.toggle() }
+        DragWatcher.shared.start()
     }
 
     func showGrid() {
@@ -74,6 +76,8 @@ final class Actions {
         switch (verb, argument) {
         case ("grid", "dump"):
             Diagnostics.note("debug: \(GridOverlay.shared.dump())")
+        case ("palette", "dump"):
+            Diagnostics.note("debug: \(PaletteOverlay.shared.dump())")
         case ("grid", "close"):
             GridOverlay.shared.close()
         case ("grid", "snap"):

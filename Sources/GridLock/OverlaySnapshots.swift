@@ -13,6 +13,8 @@ enum OverlaySnapshots {
     static let visible = CGRect(x: 0, y: 33, width: 1440, height: 795)
     static let windowFrame = CGRect(x: 180, y: 120, width: 760, height: 520)
     static let grid = GridSpec(columns: 6, rows: 4, gap: 8, margin: 8)
+    static let draggedFrame = CGRect(x: 330, y: 33, width: 760, height: 520)
+    static let cursor = CGPoint(x: 720, y: 2)
 
     private static var window: NSWindow?
 
@@ -20,7 +22,9 @@ enum OverlaySnapshots {
         let window = self.window ?? NSWindow(contentRect: bounds, styleMask: [.borderless], backing: .buffered, defer: false)
         self.window = window
         window.isReleasedWhenClosed = false
-        let canvas = FakeDesktop(frame: bounds, window: windowFrame)
+        let palette = page.hasPrefix("palette")
+        // For the palette, the window is being dragged at the top of the display.
+        let canvas = FakeDesktop(frame: bounds, window: palette ? draggedFrame : windowFrame)
         switch page {
         case "overlay-grid", "overlay-grid-selecting":
             let view = GridView(frame: bounds)
@@ -37,6 +41,23 @@ enum OverlaySnapshots {
             state.showsHint = true
             view.state = state
             canvas.addSubview(view)
+        case "palette", "palette-hover":
+            let model = PaletteModel()
+            model.kinds = Palette.suggested(for: grid).map(\.kind)
+            model.geometry = PaletteGeometry(count: model.kinds.count, aspect: visible.width / visible.height, maxWidth: 900)
+            let frame = model.geometry.frame(under: cursor.x, bounds: bounds, visible: visible)
+            if page == "palette-hover" {
+                // The cursor over the right zone of the first layout (Halves).
+                let zone = model.kinds[1].zones()[2]
+                model.highlight = .init(entry: 1, zone: 2)
+                let target = GridMath.frame(for: zone, visible: visible, gap: grid.gap, margin: grid.margin)
+                let preview = DropPreviewView(frame: target)
+                preview.size = target.size
+                canvas.addSubview(preview)
+            }
+            let container = PaletteContainer(model: model)
+            container.frame = frame
+            canvas.addSubview(container)
         default:
             return nil
         }
