@@ -29,8 +29,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindow.shared.desks = desks
         SettingsWindow.shared.launchAtLogin = launchAtLogin
         statusItem = StatusItemController(desks: desks)
-        NSApp.mainMenu = AppPresence.mainMenu(appName: "GridLock", settingsTitle: "Settings…",
-                                              target: self, settings: #selector(showSettings))
+        let mainMenu = AppPresence.mainMenu(appName: "GridLock", settingsTitle: "Settings…",
+                                            target: self, settings: #selector(showSettings))
+        // Right below About in the app menu.
+        let otherApps = NSMenuItem(title: "Our other apps…", action: #selector(showOtherApps), keyEquivalent: "")
+        otherApps.target = self
+        mainMenu.items.first?.submenu?.insertItem(otherApps, at: 1)
+        // Help menu, with the standard ⌘? (macOS adds its search field).
+        let helpItem = NSMenuItem()
+        let help = NSMenu(title: "Help")
+        let helpOpen = NSMenuItem(title: "GridLock Help", action: #selector(showHelp), keyEquivalent: "?")
+        helpOpen.target = self
+        help.addItem(helpOpen)
+        helpItem.submenu = help
+        mainMenu.addItem(helpItem)
+        NSApp.helpMenu = help
+        NSApp.mainMenu = mainMenu
         #if DEBUG
         // Renders pages to PNGs and quits; starts no shortcuts, palette or updates.
         if Snapshot.runIfAsked(desks: desks) { return }
@@ -126,10 +140,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindow.shared.show()
     }
 
+    @objc func showHelp() { HelpWindow.shared.show() }
+
+    /// The developer's site, which lists every app.
+    @objc func showOtherApps() {
+        if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
+    }
+
     /// Development affordance, only with GRIDLOCK_DEBUG=1. A distributed notification
     /// `com.smanke.GridLock.debug` whose object is a command runs it in the installed,
     /// permission-holding build; results go to ~/Library/Logs/GridLock.log. Commands:
-    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|<tab>`, `grid:show`,
+    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|help|<tab>`, `help:<topic>`, `grid:show`,
     /// `snap:<zone name>`, `undo:last`.
     private func listenForDebugCommands() {
         guard Diagnostics.isEnabled else { return }
@@ -152,6 +173,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let w = WindowMover.shared.frontmostWindow()
             Diagnostics.note("debug: front \(w.map { "\($0.appName) \($0.frame)" } ?? "none")")
         case ("show", "settings"): SettingsWindow.shared.show()
+        case ("show", "help"): HelpWindow.shared.show()
+        case ("help", let topic): HelpWindow.shared.show(topic: topic)
         case ("show", let tab): SettingsWindow.shared.show(tab: tab)
         case ("grid", "show"): Actions.shared.showGrid()
         case ("snap", let name):

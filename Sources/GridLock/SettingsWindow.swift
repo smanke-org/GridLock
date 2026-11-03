@@ -73,7 +73,17 @@ final class SettingsTabs: NSTabViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    private func add(_ title: String, _ symbol: String, _ view: some View) {
+    private func add(_ title: String, _ symbol: String, _ content: some View) {
+        let view = VStack(spacing: 0) {
+            content
+            // The round Help button in the corner, as macOS does, open at this pane's page.
+            HStack {
+                Spacer()
+                HelpButton(topic: Help.topic(forSettingsTab: title)).fixedSize()
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+        }
         // Letting SwiftUI size the window to a Form's full height crashed once a pane grew
         // taller than the screen (AppKit clamped, SwiftUI asked again, AppKit aborted), so
         // the window is sized here and the pane fills whatever size it gets.

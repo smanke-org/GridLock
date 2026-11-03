@@ -73,6 +73,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), target: self)
                 .showIcon("arrow.down.circle")
         }
+        menu.addItem(withTitle: "GridLock Help", action: #selector(showHelp), target: self).showIcon("questionmark.circle")
         menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",", target: self).showIcon("gearshape")
         menu.addItem(withTitle: "Quit GridLock", action: #selector(quit), keyEquivalent: "q", target: self)
     }
@@ -89,6 +90,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func undoMove() { Actions.shared.undo() }
     @objc private func showDesks() { SettingsWindow.shared.show(tab: "Desks") }
     @objc private func showSettings() { SettingsWindow.shared.show() }
+    @objc private func showHelp() { HelpWindow.shared.show() }
     @objc private func checkForUpdates() { UpdateController.checkForUpdates() }
     @objc private func installStagedUpdate() { AutoUpdater.shared.installNow() }
     @objc private func quit() { NSApp.terminate(nil) }
