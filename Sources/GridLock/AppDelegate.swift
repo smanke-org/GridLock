@@ -34,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if Snapshot.runIfAsked(desks: desks) { return }
         #endif
 
+        NewDeskNotice.shared.start(desks: desks)
         desks.start()
         listenForDebugCommands()
         HotKeyCenter.shared.perform = { id in Actions.shared.perform(shortcut: id) }
@@ -118,7 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `com.smanke.GridLock.debug` whose object is a command runs it in the installed,
     /// permission-holding build; results go to ~/Library/Logs/GridLock.log. Commands:
     /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|<tab>`, `grid:show`,
-    /// `snap:<zone name>`, `undo:last`.
+    /// `snap:<zone name>`, `undo:last`, `desk:notify` (the new-desk notification for this desk).
     private func listenForDebugCommands() {
         guard Diagnostics.isEnabled else { return }
         DistributedNotificationCenter.default().addObserver(
@@ -149,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let after = w.flatMap { AXWindows.frame(of: $0.element) }
             Diagnostics.note("debug: snap \(name) \(w?.appName ?? "none") → \(after.map { "\($0)" } ?? "nil")")
         case ("undo", "last"): Actions.shared.undo()
+        case ("desk", "notify"): desks.currentDesk.map(NewDeskNotice.shared.post)
         default: Diagnostics.note("debug: unknown command \(command)")
         }
     }
