@@ -16,6 +16,7 @@ extension Snapshot {
         selection.displayKey = nil
         selection.renaming = nil
         selection.editingLayout = nil
+        selection.editingZone = nil
     }
 
     static func renderDeskPage(_ page: String) async -> NSWindow? {
@@ -35,6 +36,7 @@ extension Snapshot {
             selection.renaming = current
         case "layout-editor":
             SettingsWindow.shared.show(tab: "Layouts")
+            selection.editingZone = 1
             selection.editingLayout = library.customLayouts.first ?? CustomLayout(name: "", zones: [])
         default:
             return nil

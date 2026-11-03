@@ -20,6 +20,8 @@ final class DeskSelection {
     var renaming: UUID?
     /// The custom layout open in the layout editor.
     var editingLayout: CustomLayout?
+    /// The zone selected when the editor opens (snapshot mode shows one selected).
+    var editingZone: Int?
 
     func desk(in tracker: DeskTracker) -> Desk? {
         tracker.store.desk(id: deskID) ?? tracker.currentDesk
