@@ -171,6 +171,16 @@ enum Help {
             ]),
             .text("Zones for snap: left-half, right-half, top-half, bottom-half, left-third, center-third, right-third, left-two-thirds, right-two-thirds, top-left, top-right, bottom-left, bottom-right, center and maximize."),
             .text("Use these links from Shortcuts, scripts or a launcher. ToolHUD's GridLock buttons use them."),
+            .heading("Command line and AI agents"),
+            .text("GridLock is also a command line tool, so scripts and AI agents such as Claude Code or Codex can see your displays, desks, grids and layouts, list windows, snap a window to a zone, a layout or grid cells, undo a move, and change grids and settings. Commands run in the open app, so Undo Move works on them too. Resetting a display's grid and palette needs --yes."),
+            .keys([
+                ("gridlock help", "List every command and its options"),
+                ("gridlock windows snap --zone left-half", "Snap the frontmost window to a zone; --app picks another app's"),
+                ("gridlock layouts apply Halves --zone 2", "Snap the frontmost window into a palette layout's zone"),
+                ("gridlock grid set --display 1 --columns 12", "Change a display's grid at this desk"),
+                ("gridlock mcp", "Offer the same commands to MCP apps, such as Claude Desktop"),
+            ]),
+            .text("To type gridlock in Terminal, link it once: ln -s /Applications/GridLock.app/Contents/MacOS/GridLock ~/.local/bin/gridlock (with ~/.local/bin on your PATH). Without --app, snapping acts on the frontmost window, which is Terminal's when you run it there. MCP apps take the full path to that program, followed by mcp."),
         ]),
 
         HelpTopic(id: "troubleshooting", title: "Troubleshooting", symbol: "wrench.and.screwdriver", blocks: [

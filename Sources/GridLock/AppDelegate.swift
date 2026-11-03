@@ -31,6 +31,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Actions.shared.desks = desks
         SettingsWindow.shared.desks = desks
         SettingsWindow.shared.launchAtLogin = launchAtLogin
+        #if DEBUG
+        // A test run of the agent CLI (APP_STORE): its own desks, settings and log, the desk
+        // tracker (it only reads the displays) and the agent socket. Nothing else starts: no
+        // menu bar item, ToolHUD menu, shortcuts, drag watching, settings sync, updater or
+        // login item, and no Accessibility prompt.
+        if AgentSocket.isTestRun {
+            desks.start()
+            AgentSocket.listen { AgentRouter.handle($0) }
+            return
+        }
+        #endif
         statusItem = StatusItemController(desks: desks)
         let mainMenu = AppPresence.mainMenu(appName: "GridLock", settingsTitle: "Settings…",
                                             target: self, settings: #selector(showSettings))
@@ -56,6 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NewDeskNotice.shared.start(desks: desks)
         desks.start()
+        // `gridlock` and the MCP server talk to the app through this.
+        AgentSocket.listen { AgentRouter.handle($0) }
         listenForDebugCommands()
         HotKeyCenter.shared.perform = { id in Actions.shared.perform(shortcut: id) }
         HotKeyCenter.shared.apply()

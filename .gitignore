@@ -3,4 +3,6 @@
 *.dmg
 .DS_Store
 Resources/AppIcon.iconset/
-.claude/
+# Session worktrees and local settings; the agent skill is shared.
+.claude/*
+!.claude/skills/

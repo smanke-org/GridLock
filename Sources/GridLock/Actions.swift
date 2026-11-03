@@ -94,19 +94,28 @@ final class Actions {
     /// keeping its share of the grid: columns 4–6 of 6 become 7–12 of 12.
     func sendFrontmostToDisplay(step: Int) {
         guard AXWindows.isTrusted else { return WelcomeWindow.shared.show() }
+        guard let window = WindowMover.shared.frontmostWindow() else { return Diagnostics.note("next display: no window to place") }
+        sendToDisplay(window, step: step)
+    }
+
+    /// The same for any window (`gridlock windows snap --app … --display next`). Returns the
+    /// display it went to, or nil when there's only one.
+    @discardableResult
+    func sendToDisplay(_ window: TargetWindow, step: Int) -> LiveDisplay? {
         var displays = desks.live
         if displays.isEmpty { displays = DisplayCatalog.current() }
-        guard let window = WindowMover.shared.frontmostWindow(),
-              let from = LiveDisplay.index(holding: window.frame, in: displays) else {
-            return Diagnostics.note("next display: no window to place")
+        guard let from = LiveDisplay.index(holding: window.frame, in: displays) else {
+            Diagnostics.note("next display: no window to place")
+            return nil
         }
         let to = DisplayOrder.next(after: from, in: displays, step: step)
-        guard to != from else { return Diagnostics.note("next display: only one display") }
+        guard to != from else { Diagnostics.note("next display: only one display"); return nil }
         let source = desks.settings(for: displays[from]).grid
         let target = desks.settings(for: displays[to]).grid
         let cells = GridMath.cells(for: window.frame, grid: source, visible: displays[from].visible).mapped(from: source, to: target)
         snap(window, to: cells, on: displays[to])
         Diagnostics.note("next display: \(window.appName) \(displays[from].name) → \(displays[to].name) \(cells)")
+        return displays[to]
     }
 
     /// Debug-hook commands for the grid and the palette (see AppDelegate). False when the
@@ -140,7 +149,7 @@ final class Actions {
     }
 
     /// Zones that URLs, shortcuts and the debug hook can name.
-    static let namedZones: [String: UnitRect] = [
+    nonisolated static let namedZones: [String: UnitRect] = [
         "maximize": .full,
         "left-half": UnitRect(x: 0, y: 0, width: 0.5, height: 1),
         "right-half": UnitRect(x: 0.5, y: 0, width: 0.5, height: 1),

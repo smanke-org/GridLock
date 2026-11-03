@@ -26,6 +26,7 @@ Requires macOS 26 or later. Free.
 - **Shortcuts for everything.** Every zone can have a shortcut; pressing a half's shortcut again steps through two-thirds and a third. Move a window to the next display and keep its share of the grid.
 - **Undo Move.** ⌃⌥Z puts the last window GridLock moved back where it was, up to 10 moves back.
 - **Works with your other apps.** `gridlock://` links for scripts and Shortcuts, buttons in ToolHUD, and its shortcuts listed in ShortcutsLens.
+- **A command line for scripts and AI agents.** `gridlock` lists displays, desks, layouts and windows, snaps windows, and changes grids and settings in the running app.
 - **The usual comforts.** Light or dark appearance, menu bar and Dock icons you can hide, open at login, settings that follow you to your other Macs over iCloud (custom layouts, and each desk's grids and palettes, too), and Help built in (⌘?).
 
 GridLock never changes macOS's own window tiling. If "Drag windows to screen edges to tile" is on, Settings › General says so and opens the right page of System Settings.
@@ -42,6 +43,33 @@ GridLock never changes macOS's own window tiling. If "Drag windows to screen edg
 <td width="50%" align="center"><img src="docs/images/gridlock-settings-palette.webp" width="360" alt="Settings, Palette: available layout families on the left, this display's palette on the right with counts, and a preview below"><br><sub><b>Palette.</b> Choose a display's layouts, their counts and their order.</sub></td>
 </tr>
 </table>
+
+### Command line and AI agents
+
+GridLock is also a command line tool, so scripts and AI agents (Claude Code, Codex) can see your displays, desks, grids and
+layouts, list windows, snap a window to a zone, a layout or grid cells, undo a move, and change grids and settings.
+Commands run in the open app, through the same code as the palette, the grid and Settings, so Undo Move works on them.
+Link it once to type `gridlock`:
+
+```bash
+ln -s /Applications/GridLock.app/Contents/MacOS/GridLock ~/.local/bin/gridlock
+```
+
+```bash
+gridlock help
+gridlock displays list
+gridlock windows snap --zone left-half --app Safari
+gridlock layouts apply "Two-Thirds + Third" --zone 2 --app Safari
+gridlock grid set --display 1 --columns 12 --gap 8
+```
+
+Every command takes `--json`. Without `--app`, snapping acts on the frontmost window, which is Terminal's when you run it
+there. Resetting a display's grid and palette only shows what it would change until you add `--yes`. For MCP apps such as
+Claude Desktop, the same commands are served by `/Applications/GridLock.app/Contents/MacOS/GridLock mcp`:
+
+```bash
+claude mcp add --scope user gridlock -- /Applications/GridLock.app/Contents/MacOS/GridLock mcp
+```
 
 ## Updates
 

@@ -8,7 +8,16 @@ import Observation
 final class AppSettings {
     static let shared = AppSettings()
 
-    private let defaults = UserDefaults.standard
+    private let defaults = AppSettings.store
+
+    /// Where these settings and AppPresence's are kept. An agent CLI test copy (a Debug build run
+    /// with `APP_STORE`) keeps its own, so `gridlock settings set` never reaches the real ones.
+    nonisolated(unsafe) static let store: UserDefaults = {
+        #if DEBUG
+        if AgentSocket.isTestRun, let suite = UserDefaults(suiteName: "com.smanke.GridLock.agenttest") { return suite }
+        #endif
+        return .standard
+    }()
 
     private enum Key {
         static let confirmQuit = "confirmQuit"

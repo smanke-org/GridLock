@@ -53,8 +53,14 @@ final class DeskStore {
 
     /// `GRIDLOCK_DATA_DIR=<folder>` keeps a test run's desks in that folder and off iCloud,
     /// so tests never touch the real library (test copies otherwise share it).
-    nonisolated static let testFolder: URL? = ProcessInfo.processInfo.environment["GRIDLOCK_DATA_DIR"]
-        .map { URL(filePath: $0, directoryHint: .isDirectory) }
+    /// An agent CLI test copy (a Debug build run with `APP_STORE=<folder>`) keeps them in that folder.
+    nonisolated static let testFolder: URL? = {
+        let env = ProcessInfo.processInfo.environment
+        #if DEBUG
+        if AgentSocket.isTestRun, let store = env["APP_STORE"] { return URL(filePath: store, directoryHint: .isDirectory) }
+        #endif
+        return env["GRIDLOCK_DATA_DIR"].map { URL(filePath: $0, directoryHint: .isDirectory) }
+    }()
 
     nonisolated static let localURL: URL = {
         if let testFolder { return testFolder.appending(path: "desks.json") }
