@@ -23,6 +23,7 @@ final class Actions {
     func startInteraction() {
         showGridHandler = { GridOverlay.shared.toggle() }
         DragWatcher.shared.start()
+        Diagnostics.note("macOS edge tiling: \(SystemEdgeTiling.shared.isOn ? "on" : "off")")
     }
 
     func showGrid() {
