@@ -100,15 +100,20 @@ final class DeskStore {
         persist()
     }
 
-    /// Changes one display's settings at one desk.
+    /// Changes one display's settings at one desk, and nowhere else.
     func update(desk id: UUID, display key: String, _ change: (inout DisplaySettings) -> Void) {
-        guard var desk = desk(id: id) else { return }
-        let size = desk.displays.first { $0.key == key }?.bounds.cgRect.size ?? .zero
-        var settings = desk.settings[key] ?? .suggested(for: size)
-        change(&settings)
-        settings.grid = settings.grid.clamped
-        desk.settings[key] = settings
-        update(desk)
+        if library.updateSettings(desk: id, display: key, change) { persist() }
+    }
+
+    /// Paste Settings: another display's grid and palette.
+    func paste(_ clip: DisplaySettings, desk id: UUID, display key: String) {
+        update(desk: id, display: key) { $0 = $0.pasting(clip) }
+    }
+
+    /// Reset to Defaults: what GridLock suggests for the display's shape.
+    func reset(desk id: UUID, display key: String) {
+        let size = desk(id: id)?.displays.first { $0.key == key }?.bounds.cgRect.size ?? .zero
+        update(desk: id, display: key) { $0 = .suggested(for: size) }
     }
 
     func rename(_ id: UUID, to name: String) {
@@ -123,9 +128,14 @@ final class DeskStore {
         persist()
     }
 
-    func setCustomLayouts(_ layouts: [CustomLayout]) {
-        guard layouts != library.customLayouts else { return }
-        library.customLayouts = layouts
+    func saveCustomLayout(_ layout: CustomLayout) {
+        library.saveCustomLayout(layout)
+        persist()
+    }
+
+    /// Also takes the layout out of every palette that showed it.
+    func deleteCustomLayout(_ id: UUID) {
+        library.removeCustomLayout(id)
         persist()
     }
 
