@@ -7,7 +7,7 @@ import SwiftUI
 /// window on it — never the real screen.
 @MainActor
 enum OverlaySnapshots {
-    static let pages = ["overlay-grid", "overlay-grid-selecting", "palette", "palette-hover"] + PaletteDesigns.pages
+    static let pages = ["overlay-grid", "overlay-grid-selecting", "palette", "palette-hover"] + PaletteDesigns.pages + PaletteFrames.pages
 
     /// A 1440 × 900 display with a menu bar and a Dock, in its own top-left space.
     static let bounds = CGRect(x: 0, y: 0, width: 1440, height: 900)
@@ -24,7 +24,8 @@ enum OverlaySnapshots {
         self.window = window
         window.isReleasedWhenClosed = false
         let design = PaletteDesigns.number(of: page)
-        let palette = page.hasPrefix("palette") || design != nil
+        let frameStyle = PaletteFrames.number(of: page).map { PaletteFrames.styles[$0 - 1] }
+        let palette = page.hasPrefix("palette") || design != nil || frameStyle != nil
         // For the palette, the window is being dragged at the top of the display; for the
         // ring, mid-drag with the ring around the pointer.
         var dragged = draggedFrame
@@ -72,12 +73,12 @@ enum OverlaySnapshots {
             state.showsHint = true
             view.state = state
             canvas.addSubview(view)
-        case "palette", "palette-hover":
+        case _ where page == "palette" || page == "palette-hover" || frameStyle != nil:
             let model = PaletteModel()
             model.kinds = Palette.suggested(for: grid).map(\.kind)
             model.geometry = PaletteGeometry(count: model.kinds.count, aspect: visible.width / visible.height, maxWidth: 900)
             let frame = model.geometry.frame(under: cursor.x, bounds: bounds, visible: visible)
-            if page == "palette-hover" {
+            if page == "palette-hover" || frameStyle != nil {
                 // The cursor over the right zone of the first layout (Halves).
                 let zone = model.kinds[1].zones()[2]
                 model.highlight = .init(entry: 1, zone: 2)
@@ -88,7 +89,10 @@ enum OverlaySnapshots {
             }
             let container = PaletteContainer(model: model)
             container.frame = frame
+            let around = frame.insetBy(dx: -PaletteFrames.spill, dy: -PaletteFrames.spill)
+            if let frameStyle { canvas.addSubview(PaletteFrameShadow(frame: around, style: frameStyle)) }
             canvas.addSubview(container)
+            if let frameStyle { canvas.addSubview(PaletteFrameLine(frame: around, style: frameStyle)) }
         default:
             if design == nil { return nil }
         }
