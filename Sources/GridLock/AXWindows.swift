@@ -100,6 +100,14 @@ enum AXWindows {
         let a = AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, position)
         let b = AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
         let c = AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, position)
+        // A wide window moved to the edge of a display can sit mostly on its neighbor for
+        // a moment, and the new size is clamped to that neighbor (a maximized window put
+        // in the right third came back as tall as the smaller display). Now that it is
+        // where it belongs, the size again.
+        if let now = AXWindows.frame(of: element), abs(now.width - frame.width) > 2 || abs(now.height - frame.height) > 2 {
+            AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
+            AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, position)
+        }
         return a == .success || b == .success || c == .success
     }
 
