@@ -8,10 +8,13 @@ import AppKit
 ///
 /// Recognizes the displays (into the scratch library), then writes `<page>-light.png` and
 /// `<page>-dark.png` for each page and quits. Pages: `settings-<tab>` for every Settings tab
-/// (lowercased label), `help-<topic>` for every Help page. New surfaces (the grid, the palette)
+/// (lowercased label), `help-<topic>` for every Help page, `icon`, and `menu` (the menu bar menu). New surfaces (the grid, the palette)
 /// add their pages to `render`.
 @MainActor
 enum Snapshot {
+    /// Builds the menu bar menu as it opens; set at launch.
+    static var menu: (() -> NSMenu)?
+
     static func runIfAsked(desks: DeskTracker) -> Bool {
         let env = ProcessInfo.processInfo.environment
         guard let out = env["GRIDLOCK_SNAPSHOT"] else { return false }
@@ -39,7 +42,7 @@ enum Snapshot {
 
     static var pages: [String] {
         ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"]
-            + Help.topics.map { "help-\($0.id)" } + ["icon"]
+            + Help.topics.map { "help-\($0.id)" } + ["icon", "menu"]
     }
 
     /// What the pictures can't show: each Settings pane's ? button presses through to a Help
@@ -73,6 +76,7 @@ enum Snapshot {
             return SettingsWindow.shared.debugWindow
         }
         if page == "icon" { return iconWindow() }
+        if page == "menu" { return menuWindow() }
         if page.hasPrefix("help-") {
             HelpWindow.shared.show(topic: String(page.dropFirst("help-".count)))
             try? await Task.sleep(for: .milliseconds(600))
@@ -111,6 +115,70 @@ enum Snapshot {
         window.orderFrontRegardless()
         iconPanel = window
         return window
+    }
+
+    /// The menu bar menu laid out the way it opens (title with its icon, shortcut on the
+    /// right, separators), since an open NSMenu can't be drawn to a file.
+    private static var menuPanel: NSWindow?
+
+    private static func menuWindow() -> NSWindow? {
+        guard let menu = menu?() else { return nil }
+        let grid = NSGridView()
+        grid.rowSpacing = 4
+        grid.columnSpacing = 32
+        for item in menu.items {
+            if item.isSeparatorItem {
+                let line = NSBox()
+                line.boxType = .separator
+                grid.addRow(with: [line])
+                grid.mergeCells(inHorizontalRange: NSRange(location: 0, length: 2), verticalRange: NSRange(location: grid.numberOfRows - 1, length: 1))
+                continue
+            }
+            let parts = item.plainTitle.split(separator: "\t", maxSplits: 1).map(String.init)
+            let text = NSMutableAttributedString(attributedString: item.attributedTitle
+                ?? NSAttributedString(string: item.title, attributes: [.font: NSFont.menuFont(ofSize: 0)]))
+            // The shortcut goes in its own column.
+            if let tab = text.string.firstIndex(of: "\t") {
+                text.deleteCharacters(in: NSRange(tab..<text.string.endIndex, in: text.string))
+            }
+            let color: NSColor = item.isEnabled ? .labelColor : .tertiaryLabelColor
+            text.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: text.length))
+            let key = NSTextField(labelWithString: parts.count > 1 ? parts[1] : item.keyEquivalent.isEmpty ? "" : item.keyEquivalentDisplay)
+            key.font = .menuFont(ofSize: 0)
+            key.textColor = .secondaryLabelColor
+            grid.addRow(with: [TextRow(text), key])
+        }
+        grid.column(at: 1).xPlacement = .trailing
+        let container = NSView()
+        grid.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(grid)
+        NSLayoutConstraint.activate([
+            grid.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 14),
+            grid.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -14),
+            grid.topAnchor.constraint(equalTo: container.topAnchor, constant: 10),
+            grid.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
+        ])
+        let window = menuPanel ?? NSWindow(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.backgroundColor = .windowBackgroundColor
+        window.contentView = container
+        window.setContentSize(container.fittingSize)
+        window.isReleasedWhenClosed = false
+        window.orderFrontRegardless()
+        menuPanel = window
+        return window
+    }
+
+    /// Draws an attributed string as is: a text field drops the kerning `showIcon` centers
+    /// icons with, so their titles would sit off from where the menu puts them.
+    private final class TextRow: NSView {
+        let text: NSAttributedString
+        init(_ text: NSAttributedString) {
+            self.text = text
+            super.init(frame: .zero)
+        }
+        required init?(coder: NSCoder) { fatalError() }
+        override var intrinsicContentSize: NSSize { text.size() }
+        override func draw(_ dirtyRect: NSRect) { text.draw(at: .zero) }
     }
 
     private static func write(_ window: NSWindow, to url: URL) {

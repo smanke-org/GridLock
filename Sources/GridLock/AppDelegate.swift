@@ -47,6 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = mainMenu
         #if DEBUG
         // Renders pages to PNGs and quits; starts no shortcuts, palette or updates.
+        Snapshot.menu = { [statusItem] in statusItem!.freshMenu() }
         if Snapshot.runIfAsked(desks: desks) { return }
         #endif
 
