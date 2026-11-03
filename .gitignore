@@ -2,3 +2,4 @@
 .swiftpm/
 *.dmg
 .DS_Store
+Resources/AppIcon.iconset/

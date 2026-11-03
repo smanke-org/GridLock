@@ -39,7 +39,7 @@ enum Snapshot {
 
     static var pages: [String] {
         ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"]
-            + Help.topics.map { "help-\($0.id)" }
+            + Help.topics.map { "help-\($0.id)" } + ["icon"]
     }
 
     /// What the pictures can't show: each Settings pane's ? button presses through to a Help
@@ -72,6 +72,7 @@ enum Snapshot {
             try? await Task.sleep(for: .milliseconds(600))
             return SettingsWindow.shared.debugWindow
         }
+        if page == "icon" { return iconWindow() }
         if page.hasPrefix("help-") {
             HelpWindow.shared.show(topic: String(page.dropFirst("help-".count)))
             try? await Task.sleep(for: .milliseconds(600))
@@ -79,6 +80,37 @@ enum Snapshot {
         }
         Diagnostics.note("snapshot: unknown page \(page)")
         return nil
+    }
+
+    /// The app icon from Resources at Dock size, and the nameless variant at the 32 and 16 pt
+    /// Finder uses, on the window background of the current look.
+    private static var iconPanel: NSWindow?
+
+    private static func iconWindow() -> NSWindow? {
+        let resources = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "../../Resources").standardized
+        guard let full = NSImage(contentsOf: resources.appending(path: "AppIcon.png")),
+              let small = NSImage(contentsOf: resources.appending(path: "AppIcon-small.png")) else {
+            Diagnostics.note("snapshot: no icon in \(resources.path)")
+            return nil
+        }
+        let stack = NSStackView(views: [(full, 128), (small, 32), (small, 16)].map { image, side in
+            let view = NSImageView(image: image)
+            view.imageScaling = .scaleProportionallyUpOrDown
+            view.widthAnchor.constraint(equalToConstant: CGFloat(side)).isActive = true
+            view.heightAnchor.constraint(equalToConstant: CGFloat(side)).isActive = true
+            return view
+        })
+        stack.alignment = .centerY
+        stack.spacing = 24
+        stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+        let window = iconPanel ?? NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.title = "GridLock icon"
+        window.contentView = stack
+        window.setContentSize(stack.fittingSize)
+        window.isReleasedWhenClosed = false
+        window.orderFrontRegardless()
+        iconPanel = window
+        return window
     }
 
     private static func write(_ window: NSWindow, to url: URL) {
