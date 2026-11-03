@@ -84,14 +84,14 @@ final class DeskTracker {
             desk.lastUsed = Date()
             // A display added to the desk's set by an older version, say: give it settings.
             for display in displays where desk.settings[display.key] == nil {
-                desk.settings[display.key] = store.library.seededSettings(for: [display])[display.key]
+                desk.settings[display.key] = store.library.seededSettings(for: [display], others: store.others)[display.key]
             }
             store.update(desk)
             currentDeskID = desk.id
             Diagnostics.note("settled on desk \"\(desk.name)\" [\(signature)] changed=\(changed)")
         } else {
             let isFirst = store.library.desks.isEmpty
-            let desk = store.library.newDesk(for: displays, knownNames: Self.windowKeeperNames())
+            let desk = store.library.newDesk(for: displays, knownNames: Self.windowKeeperNames(), others: store.others)
             store.add(desk)
             currentDeskID = desk.id
             Diagnostics.note("new desk \"\(desk.name)\" [\(signature)]")

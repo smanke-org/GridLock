@@ -115,13 +115,14 @@ enum Help {
                 ("Copy Settings / Paste Settings", "Give another display the same grid and palette"),
                 ("Delete", "Forget a desk you won't use again (not the current one)"),
             ]),
-            .text("Desks are kept on this Mac and copied to a folder for this Mac in iCloud Drive › GridLock. Other Macs on your account keep their own, since their displays differ."),
+            .text("Desks are kept on this Mac and copied to a folder for this Mac in iCloud Drive › GridLock. With settings sync on, another Mac at the same set of displays shares their grids and palettes, and a desk that's new to a Mac starts from the others' settings."),
             .tip("If WindowKeeper already knows a desk, a new GridLock desk takes WindowKeeper's name for it."),
         ]),
 
         HelpTopic(id: "layouts", title: "Layouts", symbol: "rectangle.split.3x1", blocks: [
             .text("A layout is one way of dividing a display: halves, columns, rows, a grid of zones, two-thirds and one-third, centered, or a whole display. Each part is a zone, and a window snaps into a zone."),
             .text("A custom layout is one you draw yourself in Settings › Layouts. Drag on the canvas to add a zone, drag its edges to resize it, and press Delete to remove it. Zones are kept as fractions of the display, so one custom layout fits every display, and it can go in any palette."),
+            .tip("With settings sync on, custom layouts are on all your Macs. Changing or deleting one changes or deletes it everywhere."),
         ]),
 
         HelpTopic(id: "shortcuts", title: "Shortcuts", symbol: "keyboard", blocks: [
@@ -149,7 +150,8 @@ enum Help {
             .heading("Where GridLock appears"),
             .text("Show GridLock in the Dock, the menu bar, both, or neither. With neither, open GridLock again from Applications or Spotlight to get back to Settings. With the Dock icon on, its right-click menu has Settings…."),
             .heading("Sync"),
-            .text("With \"Sync settings with your other Macs\" on, appearance, shortcuts, asking before quitting, where GridLock appears and the update choices follow you to every Mac signed in to the same iCloud account. Desks stay with each Mac's displays."),
+            .text("With \"Sync settings with your other Macs\" on, appearance, shortcuts, asking before quitting, where GridLock appears, the update choices and your custom layouts follow you to every Mac signed in to the same iCloud account. Deleting a custom layout on one Mac deletes it on the others."),
+            .text("Grids and palettes follow a desk: change a display's grid or palette, and every Mac at that same set of displays gets the change within a minute. Two laptops at the same monitor share a desk; a Mac mini at that monitor is a desk of its own. A desk that's new to a Mac starts from another Mac's settings for those displays. The newest change wins."),
             .tip("Settings can be dragged bigger to see more at once, and keeps the size you choose."),
         ]),
 

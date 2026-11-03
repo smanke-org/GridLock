@@ -7,9 +7,11 @@ import Observation
 /// Mac's own folder in iCloud Drive (the same scheme as WindowKeeper's profiles).
 ///
 /// Each Mac writes only `iCloud Drive/GridLock/Macs/<hardware UUID>/desks.json`, so two
-/// Macs never write the same file and there is nothing to merge. iCloud I/O runs off the
-/// main thread: the first access can raise a privacy prompt, and a call waiting on an
-/// unanswered prompt must not freeze the menu.
+/// Macs never write the same file. With "Sync settings with your other Macs" on
+/// (`isSharing`), it also reads the other Macs' files and folds in their newer grids,
+/// palettes and custom layouts (`DeskSync`). iCloud I/O runs off the main thread: the first
+/// access can raise a privacy prompt, and a call waiting on an unanswered prompt must not
+/// freeze the menu.
 @Observable
 @MainActor
 final class DeskStore {
@@ -27,6 +29,26 @@ final class DeskStore {
     @ObservationIgnored let machineID: String
     @ObservationIgnored private var lastWritten: Data?
     @ObservationIgnored private var cloudWrite: DispatchWorkItem?
+    /// The other Macs' libraries as last read, sharing or not: what a new desk is seeded from.
+    @ObservationIgnored private(set) var others: [DeskLibrary] = []
+    @ObservationIgnored private var pullTimer: Timer?
+
+    /// Whether this Mac shares its grids, palettes and custom layouts and takes the other
+    /// Macs' (settings sync is on). Recorded in the library, so other Macs know.
+    var isSharing = false {
+        didSet {
+            guard isSharing != oldValue else { return }
+            library.shares = isSharing
+            persist()
+            pullTimer?.invalidate()
+            pullTimer = nil
+            guard isSharing else { return }
+            pullFromOtherMacs()
+            pullTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.pullFromOtherMacs() }
+            }
+        }
+    }
     private static let ioQueue = DispatchQueue(label: "GridLock.cloud", qos: .utility)
 
     /// `GRIDLOCK_DATA_DIR=<folder>` keeps a test run's desks in that folder and off iCloud,
@@ -40,8 +62,11 @@ final class DeskStore {
         return support.appending(path: "GridLock/desks.json")
     }()
 
-    nonisolated static let cloudDriveURL = FileManager.default.homeDirectoryForCurrentUser
-        .appending(path: "Library/Mobile Documents/com~apple~CloudDocs", directoryHint: .isDirectory)
+    /// iCloud Drive; for a test run, a folder in the test folder standing in for it, where a
+    /// test puts other Macs' files.
+    nonisolated static let cloudDriveURL = testFolder?.appending(path: "iCloud Drive", directoryHint: .isDirectory)
+        ?? FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Library/Mobile Documents/com~apple~CloudDocs", directoryHint: .isDirectory)
 
     nonisolated static let cloudRootURL = cloudDriveURL.appending(path: "GridLock/Macs", directoryHint: .isDirectory)
 
@@ -128,6 +153,32 @@ final class DeskStore {
         persist()
     }
 
+    // MARK: - Other Macs
+
+    /// Reads the other Macs' libraries and folds in what they share that's newer.
+    func pullFromOtherMacs() {
+        guard isSharing else { return }
+        let root = Self.cloudRootURL, me = machineID
+        Self.ioQueue.async {
+            let folders = (try? FileManager.default.contentsOfDirectory(
+                at: root, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles)) ?? []
+            let libraries = folders.filter { $0.lastPathComponent != me }.compactMap { folder in
+                Self.coordinatedRead(folder.appending(path: "desks.json")).flatMap { try? Self.decoder.decode(DeskLibrary.self, from: $0) }
+            }
+            Task { @MainActor in self.adopt(libraries) }
+        }
+    }
+
+    private func adopt(_ libraries: [DeskLibrary]) {
+        others = libraries
+        guard isSharing else { return }
+        let merged = DeskSync.merge(library, with: libraries)
+        guard let before = try? Self.encoder.encode(library), let after = try? Self.encoder.encode(merged), before != after else { return }
+        library = merged
+        Diagnostics.note("sync: took newer grids, palettes or layouts from \(libraries.filter(\.shares).map(\.machineName).joined(separator: ", "))")
+        persist()
+    }
+
     func saveCustomLayout(_ layout: CustomLayout) {
         library.saveCustomLayout(layout)
         persist()
@@ -171,7 +222,6 @@ final class DeskStore {
 
     /// Batched: a burst of edits (dragging a stepper) becomes one upload.
     private func scheduleCloudWrite(_ data: Data) {
-        guard Self.testFolder == nil else { return }
         cloudWrite?.cancel()
         let folder = cloudFolderURL
         let work = DispatchWorkItem {

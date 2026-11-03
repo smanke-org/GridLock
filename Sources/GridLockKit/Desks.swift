@@ -6,10 +6,19 @@ import Foundation
 public struct DisplaySettings: Codable, Hashable, Sendable {
     public var grid: GridSpec
     public var palette: [PaletteEntry]
+    /// When the user last changed them, for settings sync: the newest change wins on every
+    /// Mac at the same desk. Nil for settings GridLock chose and nobody has touched.
+    public var modified: Date?
 
-    public init(grid: GridSpec, palette: [PaletteEntry]) {
+    public init(grid: GridSpec, palette: [PaletteEntry], modified: Date? = nil) {
         self.grid = grid
         self.palette = palette
+        self.modified = modified
+    }
+
+    /// The same grid and palette, whenever they were set.
+    public func sameContent(as other: DisplaySettings) -> Bool {
+        grid == other.grid && palette == other.palette
     }
 
     public static func suggested(for size: CGSize) -> DisplaySettings {
@@ -55,16 +64,27 @@ public struct DeskLibrary: Codable, Sendable {
     public var machineName: String
     public var desks: [Desk]
     public var customLayouts: [CustomLayout]
+    /// Custom layouts deleted here, by id, with when: another Mac still holding one takes
+    /// the deletion rather than bringing it back.
+    public var deletedLayouts: [String: Date]
+    /// Whether this Mac shares its grids, palettes and custom layouts with the user's other
+    /// Macs ("Sync settings with your other Macs"). Other Macs ignore a library that doesn't.
+    public var shares: Bool
 
-    public init(machineID: String, machineName: String, desks: [Desk] = [], customLayouts: [CustomLayout] = []) {
+    public init(machineID: String, machineName: String, desks: [Desk] = [], customLayouts: [CustomLayout] = [],
+                deletedLayouts: [String: Date] = [:], shares: Bool = false) {
         formatVersion = 1
         self.machineID = machineID
         self.machineName = machineName
         self.desks = desks
         self.customLayouts = customLayouts
+        self.deletedLayouts = deletedLayouts
+        self.shares = shares
     }
 
-    private enum CodingKeys: String, CodingKey { case formatVersion, machineID, machineName, desks, customLayouts }
+    private enum CodingKeys: String, CodingKey {
+        case formatVersion, machineID, machineName, desks, customLayouts, deletedLayouts, shares
+    }
 
     /// Lenient about fields a later version adds or an earlier one lacked.
     public init(from decoder: Decoder) throws {
@@ -74,6 +94,8 @@ public struct DeskLibrary: Codable, Sendable {
         machineName = try c.decodeIfPresent(String.self, forKey: .machineName) ?? ""
         desks = try c.decodeIfPresent([Desk].self, forKey: .desks) ?? []
         customLayouts = try c.decodeIfPresent([CustomLayout].self, forKey: .customLayouts) ?? []
+        deletedLayouts = try c.decodeIfPresent([String: Date].self, forKey: .deletedLayouts) ?? [:]
+        shares = try c.decodeIfPresent(Bool.self, forKey: .shares) ?? false
     }
 
     public func desk(withSignature signature: String) -> Desk? {
@@ -90,12 +112,22 @@ public struct DeskLibrary: Codable, Sendable {
     }
 
     /// Settings for each display of a desk seen for the first time, borrowed from the most
-    /// similar desk already known: the same display at the most recently used desk first,
-    /// else a display of the same size, else what suits the display's shape.
-    public func seededSettings(for displays: [LiveDisplay]) -> [String: DisplaySettings] {
-        let recent = desks.sorted { $0.lastUsed > $1.lastUsed }
+    /// similar desk already known: the same desk on another Mac that shares (`others`)
+    /// first, as it is; else the same display at the most recently used desk here or on
+    /// another Mac; else a display of the same size; else what suits the display's shape.
+    public func seededSettings(for displays: [LiveDisplay], others: [DeskLibrary] = []) -> [String: DisplaySettings] {
+        let shared = others.filter { $0.shares && $0.machineID != machineID }
+        let signature = DeskSignature.make(displays.map(\.key))
+        let twins = shared.compactMap { $0.desk(withSignature: signature) }
+        let recent = (desks + shared.flatMap(\.desks)).sorted { $0.lastUsed > $1.lastUsed }
         var result: [String: DisplaySettings] = [:]
         for display in displays {
+            let fromTwin = twins.compactMap { $0.settings[display.key] }
+                .max { ($0.modified ?? .distantPast) < ($1.modified ?? .distantPast) }
+            if let fromTwin {
+                result[display.key] = fromTwin
+                continue
+            }
             if let same = recent.lazy.compactMap({ $0.settings[display.key] }).first {
                 result[display.key] = same.copied
                 continue

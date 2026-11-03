@@ -102,11 +102,14 @@ public struct CustomLayout: Codable, Hashable, Identifiable, Sendable {
     public var id: UUID
     public var name: String
     public var zones: [UnitRect]
+    /// When it was last saved, for settings sync: the newest version wins on every Mac.
+    public var modified: Date?
 
-    public init(id: UUID = UUID(), name: String, zones: [UnitRect]) {
+    public init(id: UUID = UUID(), name: String, zones: [UnitRect], modified: Date? = nil) {
         self.id = id
         self.name = name
         self.zones = zones
+        self.modified = modified
     }
 }
 

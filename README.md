@@ -26,7 +26,7 @@ Requires macOS 26 or later. Free.
 - **Shortcuts for everything.** Every zone can have a shortcut; pressing a half's shortcut again steps through two-thirds and a third. Move a window to the next display and keep its share of the grid.
 - **Undo Move.** ⌃⌥Z puts the last window GridLock moved back where it was, up to 10 moves back.
 - **Works with your other apps.** `gridlock://` links for scripts and Shortcuts, buttons in ToolHUD, and its shortcuts listed in ShortcutsLens.
-- **The usual comforts.** Light or dark appearance, menu bar and Dock icons you can hide, open at login, settings that follow you to your other Macs over iCloud, and Help built in (⌘?).
+- **The usual comforts.** Light or dark appearance, menu bar and Dock icons you can hide, open at login, settings that follow you to your other Macs over iCloud (custom layouts, and each desk's grids and palettes, too), and Help built in (⌘?).
 
 GridLock never changes macOS's own window tiling. If "Drag windows to screen edges to tile" is on, Settings › General says so and opens the right page of System Settings.
 

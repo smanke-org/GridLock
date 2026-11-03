@@ -16,13 +16,16 @@ extension DeskLibrary {
     /// Changes one display's settings at one desk and nowhere else. A display the desk
     /// doesn't have settings for yet starts from the suggestions for its size.
     @discardableResult
-    public mutating func updateSettings(desk id: UUID, display key: String, _ change: (inout DisplaySettings) -> Void) -> Bool {
+    public mutating func updateSettings(desk id: UUID, display key: String, now: Date = Date(),
+                                        _ change: (inout DisplaySettings) -> Void) -> Bool {
         guard let i = desks.firstIndex(where: { $0.id == id }) else { return false }
         let size = desks[i].displays.first { $0.key == key }?.bounds.cgRect.size ?? .zero
-        var settings = desks[i].settings[key] ?? .suggested(for: size)
+        let old = desks[i].settings[key]
+        var settings = old ?? .suggested(for: size)
         change(&settings)
         settings.grid = settings.grid.clamped
-        guard desks[i].settings[key] != settings else { return false }
+        if let old, old.sameContent(as: settings) { return false }
+        settings.modified = DeskSync.stamp(now)
         desks[i].settings[key] = settings
         return true
     }
@@ -30,12 +33,18 @@ extension DeskLibrary {
     /// A desk for displays seen together for the first time: named as WindowKeeper names
     /// the same set (`knownNames`, by signature), else after its displays, and seeded from
     /// the most similar desk already known.
-    public func newDesk(for displays: [LiveDisplay], knownNames: [String: String] = [:], now: Date = Date()) -> Desk {
+    ///
+    /// The same desk on another Mac that shares (`others`) gives its name, when WindowKeeper
+    /// has none for it, and its grids and palettes.
+    public func newDesk(for displays: [LiveDisplay], knownNames: [String: String] = [:], others: [DeskLibrary] = [],
+                        now: Date = Date()) -> Desk {
         let signature = DeskSignature.make(displays.map(\.key))
         let records = displays.map(\.record)
-        let name = uniqueName(knownNames[signature] ?? DeskSignature.defaultName(for: records))
-        return Desk(name: name, signature: signature, displays: records, settings: seededSettings(for: displays),
-                    created: now, lastUsed: now)
+        let twinName = others.filter { $0.shares && $0.machineID != machineID }
+            .compactMap { $0.desk(withSignature: signature) }.max { $0.lastUsed < $1.lastUsed }?.name
+        let name = uniqueName(knownNames[signature] ?? twinName ?? DeskSignature.defaultName(for: records))
+        return Desk(name: name, signature: signature, displays: records,
+                    settings: seededSettings(for: displays, others: others), created: now, lastUsed: now)
     }
 
     /// The desk list: the current desk first, then the most recently used.
@@ -52,17 +61,25 @@ extension DeskLibrary {
     }
 
     /// Adds a custom layout, or replaces the one with the same id.
-    public mutating func saveCustomLayout(_ layout: CustomLayout) {
+    public mutating func saveCustomLayout(_ layout: CustomLayout, now: Date = Date()) {
+        var layout = layout
         if let i = customLayouts.firstIndex(where: { $0.id == layout.id }) {
+            let old = customLayouts[i]
+            guard old.name != layout.name || old.zones != layout.zones else { return }
+            layout.modified = DeskSync.stamp(now)
             customLayouts[i] = layout
         } else {
+            layout.modified = DeskSync.stamp(now)
             customLayouts.append(layout)
         }
+        deletedLayouts[layout.id.uuidString] = nil
     }
 
-    /// Deletes a custom layout and takes it out of every palette that showed it.
-    public mutating func removeCustomLayout(_ id: UUID) {
+    /// Deletes a custom layout and takes it out of every palette that showed it. The
+    /// deletion is remembered, so other Macs delete it too.
+    public mutating func removeCustomLayout(_ id: UUID, now: Date = Date()) {
         customLayouts.removeAll { $0.id == id }
+        deletedLayouts[id.uuidString] = DeskSync.stamp(now)
         for d in desks.indices {
             for key in desks[d].settings.keys {
                 desks[d].settings[key]?.palette.removeAll { $0.kind == .custom(id: id) }

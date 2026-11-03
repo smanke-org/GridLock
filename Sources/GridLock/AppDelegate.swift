@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import GridLockKit
 
 /// Quits GridLock without asking: for quitting itself (installing an update, ending a test).
@@ -16,6 +17,8 @@ enum QuitConfirmation {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = DeskStore()
+    /// Keeps the desk library's sharing in step with "Sync settings with your other Macs".
+    private var sharingSubscription: AnyCancellable?
     private lazy var desks = DeskTracker(store: store)
     private let launchAtLogin = LaunchAtLogin()
     private var statusItem: StatusItemController!
@@ -69,6 +72,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if newInstall { SettingsSync.shared.adoptOnNewInstall() }
         SettingsSync.shared.start()
+        sharingSubscription = SettingsSync.shared.$isEnabled.sink { [weak self] on in
+            MainActor.assumeIsolated { self?.store.isSharing = on }
+        }
         AutoUpdater.shared.start(newInstall: newInstall)
 
         if !AXWindows.isTrusted {
@@ -155,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `com.smanke.GridLock.debug` whose object is a command runs it in the installed,
     /// permission-holding build; results go to ~/Library/Logs/GridLock.log. Commands:
     /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|help|<tab>`, `help:<topic>`, `grid:show`, `palette:open`,
-    /// `snap:<zone name>`, `undo:last`, `desk:notify` (the new-desk notification for this desk).
+    /// `snap:<zone name>`, `undo:last`, `sync:on|off|pull`, `dump:layouts`, `desk:notify` (the new-desk notification for this desk).
     private func listenForDebugCommands() {
         guard Diagnostics.isEnabled else { return }
         DistributedNotificationCenter.default().addObserver(
@@ -189,6 +195,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let after = w.flatMap { AXWindows.frame(of: $0.element) }
             Diagnostics.note("debug: snap \(name) \(w?.appName ?? "none") → \(after.map { "\($0)" } ?? "nil")")
         case ("undo", "last"): Actions.shared.undo()
+        case ("sync", "on"): SettingsSync.shared.isEnabled = true
+        case ("sync", "off"): SettingsSync.shared.isEnabled = false
+        case ("sync", "pull"): store.pullFromOtherMacs()
+        case ("dump", "layouts"):
+            let library = store.library
+            Diagnostics.note("debug: sharing=\(store.isSharing) layouts=\(library.customLayouts.map(\.name)) "
+                             + "deleted=\(library.deletedLayouts.count) others=\(store.others.map { "\($0.machineName)(shares: \($0.shares))" })")
         case ("desk", "notify"): desks.currentDesk.map(NewDeskNotice.shared.post)
         default: if !Actions.shared.runDebugCommand(parts[0], parts[1]) { Diagnostics.note("debug: unknown command \(command)") }
         }

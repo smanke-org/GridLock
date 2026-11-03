@@ -388,6 +388,21 @@ Acceptance:
 - [self] SMAppService registers the copy in /Applications only (never a build copy).
 Status: done (registers only from /Applications)
 
+### S-048 Sync custom layouts, grids and palettes between Macs
+As the user with GridLock on more than one Mac, my custom layouts, and each desk's grids and palettes, follow me to my other Macs.
+Screens: settings-general
+Depends: S-045, S-024, S-025
+Acceptance:
+- [unit] Each Mac still writes only its own library; with "Sync settings with your other Macs" on it marks it shared and reads the other Macs' shared libraries every minute (and when sync is turned on).
+- [unit] Custom layouts: every Mac's, the newest save of each wins; deleting one on any Mac deletes it on all and takes it out of their palettes; an older copy on another Mac never brings it back.
+- [unit] A display's grid and palette sync between Macs at the same desk (the same set of displays); the newest change wins. Other desks keep their own. Untouched suggestions never override a change.
+- [unit] A desk new to a Mac starts from the same desk on another Mac (its name, unless WindowKeeper has one, and its grids and palettes, change dates kept); else the same display's settings anywhere; else the same size; else suggestions.
+- [self] Merging is stable: adopting a change and writing it back never looks newer than the Mac that made it.
+- [snap] General's iCloud caption and Help say what syncs.
+Status: done
+UX:
+- Decisions (user, 2026-11-03): same desk plus new desks; grids travel with palettes; the existing sync switch controls it.
+
 ## M6 Polish
 
 ### S-050 App icon

@@ -28,7 +28,7 @@ struct SyncUpdateSections: View {
         } header: {
             Text("iCloud")
         } footer: {
-            Caption("Appearance, shortcuts, asking before quitting, where GridLock appears and the update choices follow you to every Mac signed in to the same iCloud account with sync turned on. Desks stay with each Mac's displays.")
+            Caption("Appearance, shortcuts, asking before quitting, where GridLock appears, the update choices and your custom layouts follow you to every Mac signed in to the same iCloud account with sync turned on. So do each desk's grids and palettes, on any Mac at that same set of displays, and a desk new to a Mac starts from the others' settings.")
         }
 
         Section {
