@@ -17,6 +17,11 @@ Shared rule: the palette thumbnail view is owned by **Desks UI** (`LayoutThumbna
 
 Only **Interaction** installs to /Applications and drives real windows. The other two test with unit tests and snapshot mode.
 
+## Merged (2026-11-03)
+All three branches are in `main` (68 tests, 26 snapshot pages in both looks). Clashes: debug commands and snapshot pages kept from every side; Desks UI's `LayoutThumbnail` replaced the minimal one (same API); System's stored `isOverlayOpen` placeholder dropped for Interaction's computed one. Checked in the installed app: desk recognition, menu, snap + Undo Move, `gridlock://snap`, title-bar drag → palette → drop on a zone (Columns × 3, right zone).
+
+Still to check by hand: drag and drop in the Palette pane (synthetic drags don't register), drawing in the layout editor, right-click menus, the New desk notification, ToolHUD's menu hub, reopening with both icons hidden, login item.
+
 ## After the merge
 - M6 rest: S-052 README, release, website (after the user tries a build).
 - M7 (milestone 2): S-060–S-062 arrangements and per-app rules.
