@@ -41,6 +41,7 @@ final class SettingsSync: ObservableObject {
         AppAppearance.key,
         "shortcuts",
         "paletteModifiers",
+        "paletteTab",
         "confirmQuit", UpdatePolicy.key, UpdateInterval.valueKey, UpdateInterval.unitKey,
     ]
 
@@ -50,6 +51,7 @@ final class SettingsSync: ObservableObject {
     private static let fallbacks: [String: Any] = [
         "showInDock": false, "showInMenuBar": true, MenuHub.foldKey: true, AppAppearance.key: AppAppearance.system.rawValue,
         "paletteModifiers": Int(NSEvent.ModifierFlags.command.rawValue),
+        "paletteTab": true,
     ]
 
     private var localModified: Date? {

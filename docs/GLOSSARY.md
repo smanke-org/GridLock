@@ -12,6 +12,7 @@ One name per idea, in every button, menu, title, tooltip, Help page and error.
 | Selection | The cells chosen on the grid; the window will fill them. | spot, region, area |
 | Palette | The row of layouts that drops down when a window is dragged to the top edge of a display. | drop zone, bar, menu |
 | Open Palette | Open the palette for the frontmost window with a shortcut, then click a zone to snap it. | palette mode, quick palette |
+| Palette tab | The small hint of the palette at the top center of the display while a window is dragged; dragging onto it opens the palette. | snap bar, handle, peek |
 | Layout | One palette thumbnail: a way of dividing a display (Halves, Columns × 3, Grid 3 × 2, or a custom layout). | pattern (in UI text), template, preset |
 | Zone | One part of a layout; a window snaps into it. | region, slot, area |
 | Snap | Move and resize a window into a zone or selection. | tile, place, dock |

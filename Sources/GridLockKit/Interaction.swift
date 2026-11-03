@@ -285,3 +285,36 @@ public enum EdgeTiling {
 extension CGFloat {
     fileprivate func clamped(to range: ClosedRange<CGFloat>) -> CGFloat { Swift.min(Swift.max(self, range.lowerBound), range.upperBound) }
 }
+
+/// The palette's tab: a hint of the palette that peeks down from the top center of a
+/// display while a window is dragged, showing the palette's first few layouts. Reaching it
+/// opens the palette there.
+public enum PaletteTab {
+    /// How many of the palette's layouts the tab shows.
+    public static let maxLayouts = 4
+    public static let thumbnail = CGSize(width: 26, height: 15)
+    public static let spacing: CGFloat = 6
+    public static let padding = (horizontal: CGFloat(9), top: CGFloat(5), bottom: CGFloat(6))
+    /// How far around the tab the pointer counts as reaching it: the tab is small, and a
+    /// window being dragged is not a precise pointer.
+    public static let reach = (sides: CGFloat(36), below: CGFloat(40))
+
+    /// The tab's size for a palette of `count` layouts (an empty palette still gets one slot).
+    public static func size(count: Int) -> CGSize {
+        let n = CGFloat(min(max(count, 1), maxLayouts))
+        return CGSize(width: n * thumbnail.width + (n - 1) * spacing + 2 * padding.horizontal,
+                      height: thumbnail.height + padding.top + padding.bottom)
+    }
+
+    /// Its frame on a display (global top-left): centered, its top against the menu bar.
+    public static func frame(count: Int, visible: CGRect) -> CGRect {
+        let s = size(count: count)
+        return CGRect(x: (visible.midX - s.width / 2).rounded(), y: visible.minY, width: s.width, height: s.height)
+    }
+
+    /// Whether the pointer (global) has reached the tab: on it, beside it, a little below it,
+    /// or above it in the menu bar.
+    public static func reaches(_ cursor: CGPoint, tab: CGRect) -> Bool {
+        cursor.x >= tab.minX - reach.sides && cursor.x <= tab.maxX + reach.sides && cursor.y <= tab.maxY + reach.below
+    }
+}

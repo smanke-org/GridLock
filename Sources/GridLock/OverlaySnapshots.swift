@@ -1,12 +1,13 @@
 #if DEBUG
 import AppKit
 import GridLockKit
+import SwiftUI
 
 /// Snapshot pages for the grid and the palette, drawn over a made-up display with one
 /// window on it — never the real screen.
 @MainActor
 enum OverlaySnapshots {
-    static let pages = ["overlay-grid", "overlay-grid-selecting", "palette", "palette-hover"]
+    static let pages = ["overlay-grid", "overlay-grid-selecting", "palette", "palette-hover", "palette-tab"]
 
     /// A 1440 × 900 display with a menu bar and a Dock, in its own top-left space.
     static let bounds = CGRect(x: 0, y: 0, width: 1440, height: 900)
@@ -22,9 +23,11 @@ enum OverlaySnapshots {
         let window = self.window ?? NSWindow(contentRect: bounds, styleMask: [.borderless], backing: .buffered, defer: false)
         self.window = window
         window.isReleasedWhenClosed = false
-        let palette = page.hasPrefix("palette")
-        // For the palette, the window is being dragged at the top of the display.
-        let canvas = FakeDesktop(frame: bounds, window: palette ? draggedFrame : windowFrame)
+        let palette = page == "palette" || page == "palette-hover"
+        // For the palette, the window is being dragged at the top of the display; for the
+        // tab, partway down it.
+        let canvas = FakeDesktop(frame: bounds, window: palette ? draggedFrame
+                                 : page == "palette-tab" ? draggedFrame.offsetBy(dx: 120, dy: 160) : windowFrame)
         switch page {
         case "overlay-grid", "overlay-grid-selecting":
             let view = GridView(frame: bounds)
@@ -58,6 +61,13 @@ enum OverlaySnapshots {
             let framed = PaletteFrame(content: PaletteContainer(model: model))
             framed.frame = frame.insetBy(dx: -PaletteFrame.margin, dy: -PaletteFrame.margin)
             canvas.addSubview(framed)
+        case "palette-tab":
+            let kinds = Palette.suggested(for: grid).map(\.kind)
+            let tab = PaletteTab.frame(count: kinds.count, visible: visible)
+            let host = NSHostingView(rootView: PaletteTabView(kinds: Array(kinds.prefix(PaletteTab.maxLayouts)), custom: []))
+            host.sizingOptions = []
+            host.frame = CGRect(x: tab.minX - 10, y: tab.minY, width: tab.width + 20, height: tab.height + 10)
+            canvas.addSubview(host)
         default:
             return nil
         }

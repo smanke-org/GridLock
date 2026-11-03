@@ -98,6 +98,8 @@ enum Help {
                 ("Let go over a zone", "Snap the window into it"),
                 ("Drag away, or esc", "Close the palette; the window stays where you dragged it"),
             ]),
+            .heading("The palette's tab"),
+            .text("While you drag a window, a small tab of the palette peeks down from the top center of the display, showing its first layouts. Drag onto the tab and the whole palette opens there. Turn the tab off in Settings › Shortcuts."),
             .heading("Without the top edge"),
             .text("Pushing a window against the top edge can also open Mission Control, which offers to move the window to another desktop. To skip the edge, hold {dragKeys} while you drag: the palette opens right away, just above the pointer. Let go of the keys away from the palette to close it. Choose the keys in Settings › Shortcuts."),
             .text("Or press {shortcut:palette} (Open Palette) with the window you want to place in front. The palette opens at the top of its display; move over a zone to see where the window will go, and click it to snap the window there. Esc, a click anywhere else, or {shortcut:palette} again closes it."),

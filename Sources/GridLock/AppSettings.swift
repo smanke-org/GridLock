@@ -23,6 +23,7 @@ final class AppSettings {
         static let confirmQuit = "confirmQuit"
         static let shortcuts = "shortcuts"
         static let paletteModifiers = "paletteModifiers"
+        static let paletteTab = "paletteTab"
     }
 
     /// The keys that may be held to open the palette mid-drag.
@@ -57,6 +58,12 @@ final class AppSettings {
         didSet { defaults.set(Int(paletteModifiers.rawValue), forKey: Key.paletteModifiers) }
     }
 
+    /// The palette's tab at the top center of the display while a window is dragged
+    /// (Settings › Shortcuts).
+    var showsPaletteTab: Bool {
+        didSet { defaults.set(showsPaletteTab, forKey: Key.paletteTab) }
+    }
+
     /// Shortcut id → key. A missing id means "the default"; an id stored as null means the
     /// user cleared it.
     private var shortcuts: [String: HotKey?]
@@ -67,6 +74,7 @@ final class AppSettings {
         showInMenuBar = AppPresence.showInMenuBar
         shortcuts = Self.loadShortcuts(from: defaults)
         paletteModifiers = Self.loadPaletteModifiers(from: defaults)
+        showsPaletteTab = defaults.object(forKey: Key.paletteTab) as? Bool ?? true
     }
 
     func shortcut(_ id: String) -> HotKey? {
@@ -89,6 +97,7 @@ final class AppSettings {
         confirmQuit = defaults.object(forKey: Key.confirmQuit) as? Bool ?? true
         shortcuts = Self.loadShortcuts(from: defaults)
         paletteModifiers = Self.loadPaletteModifiers(from: defaults)
+        showsPaletteTab = defaults.object(forKey: Key.paletteTab) as? Bool ?? true
     }
 
     /// ⌘ unless the user chose otherwise.

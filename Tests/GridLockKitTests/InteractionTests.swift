@@ -201,3 +201,25 @@ struct SpeedTests {
         #expect(EdgeTiling.isOn(["EnableTilingByEdgeDrag": NSNumber(value: 1)]))
     }
 }
+
+@Suite struct PaletteTabTests {
+    private let visible = CGRect(x: 0, y: 30, width: 2560, height: 1410)
+
+    @Test func sitsAtTheTopCenterUnderTheMenuBar() {
+        let tab = PaletteTab.frame(count: 7, visible: visible)
+        #expect(tab.minY == 30)
+        #expect(abs(tab.midX - 1280) <= 1)
+        // Seven layouts in the palette, four in the tab.
+        #expect(tab.size == PaletteTab.size(count: 4))
+        #expect(PaletteTab.size(count: 0) == PaletteTab.size(count: 1))
+    }
+
+    @Test func isReachedOnItBesideItAndJustBelowIt() {
+        let tab = PaletteTab.frame(count: 4, visible: visible)
+        #expect(PaletteTab.reaches(CGPoint(x: tab.midX, y: tab.midY), tab: tab))
+        #expect(PaletteTab.reaches(CGPoint(x: tab.minX - 30, y: tab.maxY + 30), tab: tab))
+        #expect(PaletteTab.reaches(CGPoint(x: tab.midX, y: 5), tab: tab))      // up in the menu bar
+        #expect(!PaletteTab.reaches(CGPoint(x: tab.midX, y: tab.maxY + 60), tab: tab))
+        #expect(!PaletteTab.reaches(CGPoint(x: tab.maxX + 60, y: tab.midY), tab: tab))
+    }
+}

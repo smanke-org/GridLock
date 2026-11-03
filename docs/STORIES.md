@@ -206,6 +206,22 @@ UX:
 - Words: menu item "Open Palette" with ⌃⌥P; ToolHUD "Open Palette"
 - Access: Esc closes; VoiceOver reads each thumbnail's layout name
 
+### S-016 The palette's tab while dragging
+As the user, when I drag any window, I see a hint of the palette at the top center of the display, so I know I can drop the window into a layout; dragging onto it opens the palette.
+Screens: palette-tab, settings-shortcuts
+Depends: S-011
+Acceptance:
+- [unit] The tab sits at the top center of the display's usable area, under the menu bar, showing the palette's first 4 layouts (one empty slot for an empty palette); the pointer reaches it on it, within 36 pt beside it, within 40 pt below it, or above it in the menu bar.
+- [self] It appears once a title-bar drag is recognized, on the display under the pointer, and moves with the pointer between displays; it never takes the mouse.
+- [self] Reaching it opens the palette centered on it; the palette closing (dragging away) brings the tab back while the drag goes on. Esc, letting go, or the drag keys hide it.
+- [snap] Same keyline and shadow as the palette; light and dark.
+- [self] "Show the palette's tab while dragging" in Settings › Shortcuts › Palette, on by default, synced.
+- [manual] Dragging to the tab never opens Mission Control, since it sits below the menu bar.
+Status: done
+UX:
+- Decision (user, 2026-11-03): like Windows 11's snap bar, a hint of the palette at the top center while any window is dragged.
+- Words: "Show the palette's tab while dragging"; VoiceOver "Palette: drag the window here to choose a layout".
+
 ## M3 Desks — every desk remembers
 
 ### S-020 Choose what the palette shows

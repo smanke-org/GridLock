@@ -3,9 +3,10 @@ import ApplicationServices
 import Carbon.HIToolbox
 import GridLockKit
 
-/// Notices when another app's window is dragged by its title bar, opens the palette when the
-/// cursor rests at the top edge of a display (or at once while the drag keys are held), and
-/// snaps the window when it's let go over a zone.
+/// Notices when another app's window is dragged by its title bar, shows the palette's tab at
+/// the top center of the display under the pointer, opens the palette when the pointer
+/// reaches the tab or rests at the top edge of a display (or at once while the drag keys are
+/// held), and snaps the window when it's let go over a zone.
 ///
 /// Kept cheap: a global mouse monitor does nothing on a click; on the first drag event it
 /// asks Accessibility once which window is under the press, then reads that window's frame a
@@ -107,8 +108,10 @@ final class DragWatcher {
     /// The cursor moved (or rested) during a window drag.
     private func follow(_ cursor: CGPoint) {
         let palette = PaletteOverlay.shared
+        let tab = PaletteTabOverlay.shared
         let held = Self.dragKeysHeld
         if palette.isShowing {
+            tab.close()
             // Opened by the drag keys: letting go of them away from the palette closes it.
             if case .modifier = palette.trigger, !held, !palette.isNear(cursor) {
                 palette.close()
@@ -119,18 +122,33 @@ final class DragWatcher {
             }
             return
         }
-        guard !dismissed, let display = Self.display(under: cursor) else { return }
+        guard !dismissed, let display = Self.display(under: cursor) else { return tab.close() }
         if held {
             dwellTimer?.invalidate()
             dwellTimer = nil
+            tab.close()
             palette.open(on: display, near: cursor)
             _ = palette.track(cursor)
             watchEscape()
             return
         }
+        // The tab, on the display the pointer is over; reaching it opens the palette there.
+        if AppSettings.shared.showsPaletteTab {
+            tab.show(on: display)
+            if PaletteTab.reaches(cursor, tab: tab.frame) {
+                dwellTimer?.invalidate()
+                dwellTimer = nil
+                tab.close()
+                palette.open(on: display, cursorX: tab.frame.midX)
+                _ = palette.track(cursor)
+                watchEscape()
+                return
+            }
+        }
         let now = ProcessInfo.processInfo.systemUptime
         if dwell.update(cursor: cursor, bounds: display.bounds, now: now) {
             dwellTimer?.invalidate()
+            tab.close()
             palette.open(on: display, cursorX: cursor.x)
             _ = palette.track(cursor)
             watchEscape()
@@ -150,6 +168,7 @@ final class DragWatcher {
 
     private func released() {
         defer { reset() }
+        PaletteTabOverlay.shared.close()
         let palette = PaletteOverlay.shared
         guard let window = dragging, palette.isShowing else { return }
         if let choice = palette.choice {
@@ -188,8 +207,9 @@ final class DragWatcher {
     }
 
     private func escape() {
-        guard PaletteOverlay.shared.isShowing else { return }
+        guard PaletteOverlay.shared.isShowing || PaletteTabOverlay.shared.isShowing, dragging != nil else { return }
         PaletteOverlay.shared.close()
+        PaletteTabOverlay.shared.close()
         dismissed = true
         Diagnostics.note("palette: closed with Esc")
     }
@@ -207,6 +227,7 @@ final class DragWatcher {
         dismissed = false
         escapeTimer?.invalidate()
         escapeTimer = nil
+        PaletteTabOverlay.shared.close()
     }
 
     /// Whether the keys chosen in Settings › Shortcuts (⌘ by default) are down. More keys
