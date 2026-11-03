@@ -84,7 +84,7 @@ Status: todo
 
 ### S-006 Change a monitor's grid size
 As the user, I change the grid's columns and rows for one monitor at the current desk.
-Screens: settings-desks
+Screens: settings-desks, settings-desks-other
 Depends: S-002
 Acceptance:
 - [snap] The Desks pane shows the current desk as a picture of its monitors; selecting one shows Columns (1–24), Rows (1–16), Gap and Margin.
@@ -96,7 +96,7 @@ UX:
 - States: one display: picture shows just it; a display not connected (another desk): its settings edit fine, label "Not connected"; Columns at 24 / Rows at 16: stepper stops
 - Words: section "Grid"; labels "Columns", "Rows", "Gap", "Margin"; desk picture caption "Desk: Office (Dell P4317Q + Built-in)"; help "Each display keeps its own grid at each desk."
 - Access: displays in the picture are buttons ("Dell P4317Q, 6 by 4 grid"); steppers have labels and values
-Status: todo
+Status: done (Desks UI branch; [self] grid-follows check needs the merged app)
 
 ### S-007 Settings survive a restart
 As the user, I quit and reopen GridLock, and every desk's grids and palettes are as I left them.
@@ -176,12 +176,18 @@ Status: todo
 
 ### S-020 Choose what the palette shows
 As the user, I pick which layout patterns appear in a monitor's palette, and in what order.
-Screens: settings-palette
+Screens: settings-palette, settings-palette-other
 Depends: S-011, S-006
 Acceptance:
 - [snap] Two lists: Available patterns and In palette; drag between them and to reorder; a live palette preview underneath.
 - [unit] Each monitor at each desk keeps its own palette.
-Status: todo
+UX:
+- Flow: Settings › Palette → Desk and Display pickers (current desk first; others "(Not connected)") → drag a layout from Available into In Palette, or its + button → drag rows to reorder (or Move Up/Move Down in the row's context menu) → drag a row back to Available, or its − button, to take it out → preview redraws at once
+- Surface: Settings pane (inline editing of the palette while the preview shows the result)
+- States: empty palette: "This palette is empty" with "Add layouts from Available."; desk not connected: "Not connected. Changes apply when you're back at this desk."; long custom names truncate in the middle with the full name as a tooltip
+- Words: lists "Available" and "In Palette"; section "Custom Layouts"; tooltips "Add Columns to the palette", "Remove Halves from the palette"; caption "Each display keeps its own palette at each desk."
+- Access: + and − buttons and context menus do everything a drag does; rows read as "Columns × 3"; VoiceOver actions Move Up/Move Down on palette rows
+Status: done (Desks UI branch)
 
 ### S-021 Set how many of each pattern
 As the user, I set the count for a pattern family (Columns × 2…6, Rows × 2…4, Grid c × r) and can add the same family twice with different counts.
@@ -190,7 +196,13 @@ Depends: S-020
 Acceptance:
 - [snap] Each palette row has a stepper (or c × r pair) that redraws its thumbnail.
 - [unit] Patterns produce the right zones: Columns × 3 → three equal columns; Grid 3 × 2 → six zones; two-thirds + one-third → two zones, both orders.
-Status: todo
+UX:
+- Flow: In Palette row → stepper (Columns × 2…6, Rows × 2…4) or Grid's columns × rows pair (1…6 each, never 1 × 1) or Split's side menu (⅔ + ⅓, ⅓ + ⅔, ¾ + ¼, ¼ + ¾) → name and thumbnail follow at once; adding a family again picks the next count not yet in the palette
+- Surface: inline in the row (changes one value on screen)
+- States: at the end of a range the stepper stops
+- Words: names follow the count ("Halves", "Columns × 3", "Quarters", "Grid 3 × 2", "Two-Thirds + Third"); tooltips "Number of columns", "Which side is wider"
+- Access: steppers labeled "Columns"/"Rows" with their values
+Status: done (Desks UI branch)
 
 ### S-022 A new desk starts from the closest known desk
 As the user, I plug into a desk GridLock hasn't seen, and it starts with settings from the most similar desk.
@@ -198,17 +210,29 @@ Depends: S-007
 Acceptance:
 - [unit] Each monitor takes its settings from the same monitor key at another desk (most recently used first), else from a monitor of the same resolution, else from the defaults.
 - [self] A notification says "New desk: Dell P4317Q + Built-in" with "Rename…" and "Settings…".
-Status: todo
+UX:
+- Flow: displays settle on an unknown set → desk made, named as WindowKeeper names those displays or after them, settings from the closest desk → notification "New desk: <name>" → Rename… opens Settings › Desks with Rename Desk; Settings… or a click opens Settings › Desks at that desk
+- Surface: notification (information that needs no action now; never an alert)
+- States: the very first desk on a fresh install: no notification; notifications off: nothing, noted in the log
+- Words: title "New desk: Dell P4317Q + Built-in"; body "Its grids and palettes start from your other desks."; actions "Rename…", "Settings…"
+- Access: both actions are in the notification's menu
+Status: done (Desks UI branch; [self] needs the merged, installed app: debug command `desk:notify`)
 
 ### S-023 Name, rename and forget desks
 As the user, I see every desk I've used, rename it, and delete one I'll never use again.
-Screens: settings-desks
+Screens: settings-desks, desk-rename
 Depends: S-022
 Acceptance:
 - [snap] A desk list (current desk marked), each with its monitors and "last used".
 - [self] A new desk whose signature WindowKeeper already knows takes WindowKeeper's name (read-only, from its local `profiles.json`).
 - [self] Deleting asks for confirmation; the current desk can't be deleted.
-Status: todo
+UX:
+- Flow: Settings › Desks → desk list (current first, marked "Current"; others "Last used 3 days ago") → select a desk to show its picture → Rename… (button, double-click, context menu) opens Rename Desk → Return renames, Esc cancels; Delete… asks "Delete “Office”?" → Delete / Cancel
+- Surface: list in the Settings pane; Rename Desk sheet (one short task); confirmation dialog for Delete (destroys settings, can't be undone)
+- States: current desk: Delete… disabled, tooltip "You can't delete the desk you're at."; a name WindowKeeper uses for the same displays: context menu "Use WindowKeeper's Name, “Main office desk”"
+- Words: "Rename…", "Delete…", "Rename Desk", "Delete “Office”?", "GridLock forgets this desk's grids and palettes. If you connect these displays again, they start as a new desk."
+- Access: the list takes arrow keys; Return in the sheet renames, Esc cancels
+Status: done (Desks UI branch; WindowKeeper name checked in snapshot mode with a scratch copy of its signatures (`GRIDLOCK_DATA_DIR/WindowKeeper/profiles.json`); delete confirmation not snapshotted)
 
 ### S-024 Copy settings from another desk or monitor
 As the user, I copy one monitor's grid and palette to another monitor or desk.
@@ -217,7 +241,13 @@ Depends: S-023
 Acceptance:
 - [snap] Right-click a monitor: "Copy Settings", "Paste Settings", "Reset to Defaults".
 - [unit] Paste replaces grid, gap, margin and palette, nothing else.
-Status: todo
+UX:
+- Flow: right-click a display in the desk picture (or the inspector's ⋯ menu) → Copy Settings → choose any display at any desk → Paste Settings; Reset to Defaults puts back what suits the display's shape
+- Surface: context menu plus the inspector's menu button (same items, for keyboard and discoverability)
+- States: nothing copied yet: Paste Settings disabled
+- Words: "Copy Settings", "Paste Settings", "Reset to Defaults"; tooltip "Copy this display's grid and palette, paste another display's, or reset to defaults"
+- Access: the ⋯ menu button is labeled "Display Settings"
+Status: done (Desks UI branch; menus can't be captured in snapshot mode)
 
 ### S-025 Make a custom layout
 As the user, I draw my own layout of named zones and add it to any palette.
@@ -227,7 +257,13 @@ Acceptance:
 - [snap] The editor shows a canvas with a snapping grid; drag to add a zone, drag edges to resize, Delete to remove.
 - [unit] Zones are stored as fractions (0…1), so one layout fits every monitor shape.
 - [unit] Overlapping zones are allowed; a zone smaller than 5% of either side is refused.
-Status: todo
+UX:
+- Flow: Settings › Layouts → New Layout… (or Edit…, double-click) → layout editor sheet: name, canvas → drag to draw a zone (also over an unselected zone, so zones can overlap) → drag the selected zone to move it, its edge knobs to resize, arrows nudge, Shift-arrows resize, Delete removes, Option draws without snapping → Save / Add Layout (Return), Cancel (Esc) → add it to a palette in Settings › Palette
+- Surface: list in the Settings pane; editor in a sheet (one task that finishes or cancels); confirmation dialog for Delete…
+- States: no custom layouts: "No Custom Layouts" with "New Layout…"; a zone under 5%: "Zones must be at least 5% of the display's width and height." under the canvas; no name or no zones: Save disabled with a tooltip; deleting a layout in use: "It's also taken out of 2 palettes."
+- Words: "New Layout…", "Edit…", "Duplicate", "Delete…", "New Layout", "Edit Layout", "Add Zone", "Delete Zone", "Add Layout", "Save"
+- Access: Add Zone and the arrow keys make and shape zones without a mouse; zones read "Zone 2, left 25%, top 0%, 50% wide, 100% tall"
+Status: done (Desks UI branch; drawing and dragging on the canvas are [manual])
 
 ## M4 Speed
 

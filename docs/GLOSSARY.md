@@ -15,6 +15,8 @@ One name per idea, in every button, menu, title, tooltip, Help page and error.
 | Zone | One part of a layout; a window snaps into it. | region, slot, area |
 | Snap | Move and resize a window into a zone or selection. | tile, place, dock |
 | Count | How many columns, rows, or columns × rows a layout family has. | number, divisions |
+| Split | A layout family of two unequal columns: ⅔ + ⅓, ⅓ + ⅔, ¾ + ¼, ¼ + ¾. | asymmetric, uneven halves |
+| Not connected | A desk other than the one the Mac is at now. Its settings still change. | offline, inactive, disconnected |
 | Gap | Space between snapped windows. | padding, gutter |
 | Margin | Space between snapped windows and the display's edges. | inset, border |
 | Undo Move | Put the last window GridLock moved back where it was. | revert, restore |

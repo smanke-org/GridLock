@@ -100,10 +100,11 @@ final class DeskTracker {
     }
 
     /// WindowKeeper's desk names by signature, read (never written) from its local file.
-    /// Empty when WindowKeeper isn't installed.
+    /// Empty when WindowKeeper isn't installed. A test run reads `WindowKeeper/profiles.json`
+    /// in its `GRIDLOCK_DATA_DIR` instead.
     static func windowKeeperNames() -> [String: String] {
-        let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appending(path: "WindowKeeper/profiles.json")
+        let support = DeskStore.testFolder ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let url = support.appending(path: "WindowKeeper/profiles.json")
         return (try? Data(contentsOf: url)).map(WindowKeeperNames.parse) ?? [:]
     }
 
