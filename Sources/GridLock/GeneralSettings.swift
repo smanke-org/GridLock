@@ -15,6 +15,7 @@ struct GeneralSettings: View {
                     Button("Open Privacy Settings") { WelcomeWindow.shared.show() }
                 }
             }
+            EdgeTilingNote()
             Section {
                 AppearancePicker()
                 Caption(AppAppearance.footer(appName: "GridLock"))

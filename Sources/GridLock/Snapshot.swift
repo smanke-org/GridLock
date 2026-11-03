@@ -37,6 +37,7 @@ enum Snapshot {
 
     static var pages: [String] {
         ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"]
+            + OverlaySnapshots.pages
     }
 
     /// Shows a page and returns the window to capture once it has drawn.
@@ -47,6 +48,7 @@ enum Snapshot {
             try? await Task.sleep(for: .milliseconds(600))
             return SettingsWindow.shared.debugWindow
         }
+        if OverlaySnapshots.pages.contains(page) { return await OverlaySnapshots.render(page) }
         Diagnostics.note("snapshot: unknown page \(page)")
         return nil
     }
