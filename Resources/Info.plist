@@ -15,7 +15,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>1.0.0</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -28,7 +28,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>0.1.0</string>
+	<string>1.0.0</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
@@ -62,6 +62,18 @@
 			<string>arrow.uturn.backward</string>
 			<key>title</key>
 			<string>Undo the last move</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>palette</string>
+			<key>shortTitle</key>
+			<string>Open Palette</string>
+			<key>symbol</key>
+			<string>square.grid.3x1.below.line.grid.1x2</string>
+			<key>title</key>
+			<string>Open the palette for the frontmost window</string>
 		</dict>
 		<dict>
 			<key>activates</key>
