@@ -8,7 +8,8 @@ import AppKit
 ///
 /// Recognizes the displays (into the scratch library), then writes `<page>-light.png` and
 /// `<page>-dark.png` for each page and quits. Pages: `settings-<tab>` for every Settings tab
-/// (lowercased label), `help-<topic>` for every Help page, `icon`, and `menu` (the menu bar menu). New surfaces (the grid, the palette)
+/// (lowercased label), `help-<topic>` for every Help page, `icon`, `menu` (the menu bar menu)
+/// and `update-prompt`. New surfaces (the grid, the palette)
 /// add their pages to `render`.
 @MainActor
 enum Snapshot {
@@ -42,7 +43,7 @@ enum Snapshot {
 
     static var pages: [String] {
         ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"]
-            + Help.topics.map { "help-\($0.id)" } + ["icon", "menu"]
+            + Help.topics.map { "help-\($0.id)" } + ["icon", "menu", "update-prompt"]
     }
 
     /// What the pictures can't show: each Settings pane's ? button presses through to a Help
@@ -77,6 +78,18 @@ enum Snapshot {
         }
         if page == "icon" { return iconWindow() }
         if page == "menu" { return menuWindow() }
+        if page == "update-prompt" {
+            // Sample notes; the real prompt reads them from the GitHub releases.
+            let notes = [
+                ReleaseNotes.Entry(version: "0.2.0", notes: "- **Palette:** drop a window on any zone\n- Undo Move names the window", isNew: true),
+                ReleaseNotes.Entry(version: "0.1.0", notes: "First release."),
+            ]
+            let alert = UpdateController.makeConfirmAlert(newVersion: "0.2.0", current: "0.1.0", notes: notes)
+            alert.layout()
+            alert.window.orderFrontRegardless()
+            try? await Task.sleep(for: .milliseconds(600))
+            return alert.window
+        }
         if page.hasPrefix("help-") {
             HelpWindow.shared.show(topic: String(page.dropFirst("help-".count)))
             try? await Task.sleep(for: .milliseconds(600))

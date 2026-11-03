@@ -22,6 +22,10 @@ struct GeneralSettings: View {
             }
             Section {
                 Toggle("Open GridLock at login", isOn: Binding(get: { launchAtLogin.isEnabled }, set: { launchAtLogin.set($0) }))
+                    .disabled(!LaunchAtLogin.isInstalled && !launchAtLogin.isEnabled)
+                if !LaunchAtLogin.isInstalled && !launchAtLogin.isEnabled {
+                    Caption("Only the copy of GridLock in Applications can open at login.")
+                }
                 if launchAtLogin.needsApproval {
                     HStack {
                         Caption("Waiting for approval in Login Items.")
