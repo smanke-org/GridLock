@@ -24,6 +24,9 @@ enum ReleaseNotes {
         var request = URLRequest(url: URL(string: "https://api.github.com/repos/\(UpdateController.repository)/releases?per_page=50")!)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("\(AppInfo.name)/\(AppInfo.version)", forHTTPHeaderField: "User-Agent")
+        // A firewall holding the first connection while it asks would otherwise keep the
+        // What's New sheet spinning; after this it says the notes couldn't be loaded.
+        request.timeoutInterval = 15
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200,
               let releases = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] else { return [] }
