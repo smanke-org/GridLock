@@ -238,3 +238,24 @@ struct MoveHistoryTests {
         #expect(h.items.last == 10)
     }
 }
+
+struct URLActionTests {
+    private func action(_ string: String) -> URLAction? { URLAction(URL(string: string)!) }
+
+    @Test func readsEachAction() {
+        #expect(action("gridlock://grid") == .grid)
+        #expect(action("gridlock://undo") == .undo)
+        #expect(action("gridlock://settings") == .settings)
+        #expect(action("gridlock://") == .settings)
+        #expect(action("windowkeeper://grid") == nil)
+    }
+
+    @Test func snapTakesTheZoneFromTheQueryOrTheHost() {
+        for zone in ["left-half", "right-half", "maximize", "center"] {
+            #expect(action("gridlock://snap?zone=\(zone)") == .snap(zone: zone))
+            // ToolHUD's form, with the marker it adds.
+            #expect(action("gridlock://snap-\(zone)?source=toolhud") == .snap(zone: zone))
+        }
+        #expect(action("gridlock://snap") == .snap(zone: nil))
+    }
+}

@@ -37,5 +37,92 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Steve Manke</string>
+	<key>ToolHUDActions</key>
+	<array>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>grid</string>
+			<key>shortTitle</key>
+			<string>Show Grid</string>
+			<key>symbol</key>
+			<string>square.grid.3x3</string>
+			<key>title</key>
+			<string>Show the grid</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>undo</string>
+			<key>shortTitle</key>
+			<string>Undo Move</string>
+			<key>symbol</key>
+			<string>arrow.uturn.backward</string>
+			<key>title</key>
+			<string>Undo the last move</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>snap-left-half</string>
+			<key>shortTitle</key>
+			<string>Left half</string>
+			<key>symbol</key>
+			<string>rectangle.lefthalf.filled</string>
+			<key>title</key>
+			<string>Snap the window to the left half</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>snap-right-half</string>
+			<key>shortTitle</key>
+			<string>Right half</string>
+			<key>symbol</key>
+			<string>rectangle.righthalf.filled</string>
+			<key>title</key>
+			<string>Snap the window to the right half</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>snap-maximize</string>
+			<key>shortTitle</key>
+			<string>Maximize</string>
+			<key>symbol</key>
+			<string>rectangle.inset.filled</string>
+			<key>title</key>
+			<string>Snap the window to the whole display</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>snap-center</string>
+			<key>shortTitle</key>
+			<string>Center</string>
+			<key>symbol</key>
+			<string>rectangle.center.inset.filled</string>
+			<key>title</key>
+			<string>Snap the window to the center</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<true/>
+			<key>id</key>
+			<string>settings</string>
+			<key>shortTitle</key>
+			<string>Settings</string>
+			<key>symbol</key>
+			<string>gearshape</string>
+			<key>title</key>
+			<string>Open GridLock Settings</string>
+		</dict>
+	</array>
 </dict>
 </plist>

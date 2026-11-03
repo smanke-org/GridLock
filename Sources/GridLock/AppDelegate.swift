@@ -104,20 +104,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// `gridlock://` URLs (from ToolHUD, Shortcuts or a script): `grid`, `undo`,
-    /// `snap?zone=left-half`, `settings`. They act on the frontmost window of another app.
+    /// `snap?zone=left-half` (or `snap-left-half`), `settings`; see `URLAction`. They act
+    /// on the frontmost window of another app.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "gridlock" {
-            switch url.host {
-            case "grid": Actions.shared.showGrid()
-            case "undo": Actions.shared.undo()
-            case "snap":
-                let name = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "zone" }?.value
+        for action in urls.compactMap(URLAction.init) {
+            switch action {
+            case .grid: Actions.shared.showGrid()
+            case .undo: Actions.shared.undo()
+            case .snap(let name):
                 if let zone = name.flatMap({ Actions.namedZones[$0] }) {
                     Actions.shared.snapFrontmost(to: zone)
                 } else {
                     Diagnostics.note("url: unknown zone \(name ?? "nil")")
                 }
-            default: showSettings()
+            case .settings: showSettings()
             }
         }
     }
