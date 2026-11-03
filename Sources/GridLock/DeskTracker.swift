@@ -91,13 +91,21 @@ final class DeskTracker {
             Diagnostics.note("settled on desk \"\(desk.name)\" [\(signature)] changed=\(changed)")
         } else {
             let isFirst = store.library.desks.isEmpty
-            let desk = Desk(name: store.library.uniqueName(DeskSignature.defaultName(for: records)), signature: signature,
-                            displays: records, settings: store.library.seededSettings(for: displays))
+            let desk = store.library.newDesk(for: displays, knownNames: Self.windowKeeperNames())
             store.add(desk)
             currentDeskID = desk.id
             Diagnostics.note("new desk \"\(desk.name)\" [\(signature)]")
             if !isFirst { onNewDesk?(desk) }
         }
+    }
+
+    /// WindowKeeper's desk names by signature, read (never written) from its local file.
+    /// Empty when WindowKeeper isn't installed. A test run reads `WindowKeeper/profiles.json`
+    /// in its `GRIDLOCK_DATA_DIR` instead.
+    static func windowKeeperNames() -> [String: String] {
+        let support = DeskStore.testFolder ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let url = support.appending(path: "WindowKeeper/profiles.json")
+        return (try? Data(contentsOf: url)).map(WindowKeeperNames.parse) ?? [:]
     }
 
     /// For the debug hook: what the tracker sees.
