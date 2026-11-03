@@ -211,15 +211,15 @@ As the user, when I drag any window, I see a hint of the palette at the top cent
 Screens: palette-tab, settings-shortcuts
 Depends: S-011
 Acceptance:
-- [unit] The tab sits at the top center of the display's usable area, under the menu bar, showing the palette's first 4 layouts (one empty slot for an empty palette); the pointer reaches it on it, within 36 pt beside it, within 40 pt below it, or above it in the menu bar.
+- [unit] The tab is the palette's bottom edge: as wide as the palette (hanging from the menu bar at the top center), 10 pt tall, no icons; the pointer reaches it on it, within 36 pt beside it, within 40 pt below it, or above it in the menu bar.
 - [self] It appears once a title-bar drag is recognized, on the display under the pointer, and moves with the pointer between displays; it never takes the mouse.
-- [self] Reaching it opens the palette centered on it; the palette closing (dragging away) brings the tab back while the drag goes on. Esc, letting go, or the drag keys hide it.
+- [self] Reaching it slides the palette down out of it (0.22 s, ease out; Reduce Motion: no slide), hanging from the menu bar; the palette closing (dragging away) brings the tab back while the drag goes on. Esc, letting go, or the drag keys hide it.
 - [snap] Same keyline and shadow as the palette; light and dark.
 - [self] "Show the palette's tab while dragging" in Settings › Shortcuts › Palette, on by default, synced.
 - [manual] Dragging to the tab never opens Mission Control, since it sits below the menu bar.
 Status: done
 UX:
-- Decision (user, 2026-11-03): like Windows 11's snap bar, a hint of the palette at the top center while any window is dragged.
+- Decision (user, 2026-11-03): like Windows 11's snap bar, a hint of the palette at the top center while any window is dragged; then: only the palette's leading edge, 10 pt, full palette width, no icons, and the palette slides fully onto the screen from it.
 - Words: "Show the palette's tab while dragging"; VoiceOver "Palette: drag the window here to choose a layout".
 
 ## M3 Desks — every desk remembers

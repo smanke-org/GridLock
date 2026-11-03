@@ -204,18 +204,20 @@ struct SpeedTests {
 
 @Suite struct PaletteTabTests {
     private let visible = CGRect(x: 0, y: 30, width: 2560, height: 1410)
+    private let bounds = CGRect(x: 0, y: 0, width: 2560, height: 1440)
 
-    @Test func sitsAtTheTopCenterUnderTheMenuBar() {
-        let tab = PaletteTab.frame(count: 7, visible: visible)
-        #expect(tab.minY == 30)
-        #expect(abs(tab.midX - 1280) <= 1)
-        // Seven layouts in the palette, four in the tab.
-        #expect(tab.size == PaletteTab.size(count: 4))
-        #expect(PaletteTab.size(count: 0) == PaletteTab.size(count: 1))
+    @Test func isThePalettesBottomEdgeAgainstTheMenuBar() {
+        let g = PaletteGeometry(count: 7, aspect: 2560.0 / 1410, maxWidth: 900)
+        let palette = g.frame(hangingFrom: visible, centerX: bounds.midX, bounds: bounds)
+        #expect(palette.minY == visible.minY)
+        #expect(abs(palette.midX - 1280) <= 1)
+        let tab = PaletteTab.frame(palette: palette, visible: visible)
+        #expect(tab.minX == palette.minX && tab.width == palette.width)
+        #expect(tab.minY == 30 && tab.height == PaletteTab.height)
     }
 
     @Test func isReachedOnItBesideItAndJustBelowIt() {
-        let tab = PaletteTab.frame(count: 4, visible: visible)
+        let tab = CGRect(x: 830, y: 30, width: 900, height: PaletteTab.height)
         #expect(PaletteTab.reaches(CGPoint(x: tab.midX, y: tab.midY), tab: tab))
         #expect(PaletteTab.reaches(CGPoint(x: tab.minX - 30, y: tab.maxY + 30), tab: tab))
         #expect(PaletteTab.reaches(CGPoint(x: tab.midX, y: 5), tab: tab))      // up in the menu bar

@@ -40,7 +40,7 @@ struct ShortcutsSettings: View {
         let settings = AppSettings.shared
         Toggle("Show the palette's tab while dragging", isOn: Binding(
             get: { settings.showsPaletteTab }, set: { settings.showsPaletteTab = $0 }))
-        Caption("While you drag a window, a tab of the palette peeks down from the top center of the display. Drag onto it to open the palette.")
+        Caption("While you drag a window, the palette's bottom edge peeks down from under the menu bar at the top center of the display. Drag onto it and the palette slides down.")
         LabeledContent("Hold while dragging") {
             HStack(spacing: 4) {
                 ForEach(AppSettings.dragModifierChoices, id: \.rawValue) { key in

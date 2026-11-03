@@ -1,7 +1,6 @@
 #if DEBUG
 import AppKit
 import GridLockKit
-import SwiftUI
 
 /// Snapshot pages for the grid and the palette, drawn over a made-up display with one
 /// window on it — never the real screen.
@@ -62,12 +61,18 @@ enum OverlaySnapshots {
             framed.frame = frame.insetBy(dx: -PaletteFrame.margin, dy: -PaletteFrame.margin)
             canvas.addSubview(framed)
         case "palette-tab":
-            let kinds = Palette.suggested(for: grid).map(\.kind)
-            let tab = PaletteTab.frame(count: kinds.count, visible: visible)
-            let host = NSHostingView(rootView: PaletteTabView(kinds: Array(kinds.prefix(PaletteTab.maxLayouts)), custom: []))
-            host.sizingOptions = []
-            host.frame = CGRect(x: tab.minX - 10, y: tab.minY, width: tab.width + 20, height: tab.height + 10)
-            canvas.addSubview(host)
+            let count = Palette.suggested(for: grid).count
+            let aspect = visible.width / visible.height
+            let palette = PaletteGeometry(count: count, aspect: aspect, maxWidth: 900)
+                .frame(hangingFrom: visible, centerX: bounds.midX, bounds: bounds)
+            let m = PaletteFrame.margin
+            let reveal = RevealView(child: PaletteFrame(content: GlassFill()))
+            reveal.frame = CGRect(x: palette.minX - m, y: visible.minY, width: palette.width + 2 * m, height: PaletteTab.height + m)
+            reveal.topCut = m
+            reveal.childHeight = palette.height + 2 * m
+            reveal.pulledUp = palette.height - PaletteTab.height
+            canvas.addSubview(reveal)
+            reveal.layoutSubtreeIfNeeded()
         default:
             return nil
         }

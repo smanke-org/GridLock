@@ -120,6 +120,14 @@ public struct PaletteGeometry: Equatable, Sendable {
         return CGRect(x: x.rounded(), y: visible.minY + Self.drop, width: size.width, height: size.height)
     }
 
+    /// The palette's frame when it slides out of its tab (global top-left): centered on
+    /// `centerX`, kept on the display, its top against the menu bar.
+    public func frame(hangingFrom visible: CGRect, centerX: CGFloat, bounds: CGRect) -> CGRect {
+        var f = frame(under: centerX, bounds: bounds, visible: visible)
+        f.origin.y = visible.minY
+        return f
+    }
+
     /// Space between the cursor and a palette opened next to it.
     public static let lift: CGFloat = 32
 
@@ -286,30 +294,20 @@ extension CGFloat {
     fileprivate func clamped(to range: ClosedRange<CGFloat>) -> CGFloat { Swift.min(Swift.max(self, range.lowerBound), range.upperBound) }
 }
 
-/// The palette's tab: a hint of the palette that peeks down from the top center of a
-/// display while a window is dragged, showing the palette's first few layouts. Reaching it
-/// opens the palette there.
+/// The palette's tab: the palette's bottom edge, peeking down from under the menu bar at
+/// the top center of a display while a window is dragged, as if the rest of the palette were
+/// just out of sight. Reaching it slides the whole palette down from there.
 public enum PaletteTab {
-    /// How many of the palette's layouts the tab shows.
-    public static let maxLayouts = 4
-    public static let thumbnail = CGSize(width: 26, height: 15)
-    public static let spacing: CGFloat = 6
-    public static let padding = (horizontal: CGFloat(9), top: CGFloat(5), bottom: CGFloat(6))
-    /// How far around the tab the pointer counts as reaching it: the tab is small, and a
-    /// window being dragged is not a precise pointer.
+    /// How much of the palette's bottom edge shows.
+    public static let height: CGFloat = 10
+    /// How far around the tab the pointer counts as reaching it: a window being dragged is
+    /// not a precise pointer.
     public static let reach = (sides: CGFloat(36), below: CGFloat(40))
 
-    /// The tab's size for a palette of `count` layouts (an empty palette still gets one slot).
-    public static func size(count: Int) -> CGSize {
-        let n = CGFloat(min(max(count, 1), maxLayouts))
-        return CGSize(width: n * thumbnail.width + (n - 1) * spacing + 2 * padding.horizontal,
-                      height: thumbnail.height + padding.top + padding.bottom)
-    }
-
-    /// Its frame on a display (global top-left): centered, its top against the menu bar.
-    public static func frame(count: Int, visible: CGRect) -> CGRect {
-        let s = size(count: count)
-        return CGRect(x: (visible.midX - s.width / 2).rounded(), y: visible.minY, width: s.width, height: s.height)
+    /// The tab for a palette hanging from the menu bar (`PaletteGeometry.frame(hangingFrom:)`):
+    /// as wide as the palette, `height` tall, against the menu bar.
+    public static func frame(palette: CGRect, visible: CGRect) -> CGRect {
+        CGRect(x: palette.minX, y: visible.minY, width: palette.width, height: height)
     }
 
     /// Whether the pointer (global) has reached the tab: on it, beside it, a little below it,

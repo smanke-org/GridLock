@@ -49,8 +49,8 @@ final class PaletteOverlay {
     }
 
     init() {
-        panel.contentView = PaletteFrame(content: PaletteContainer(model: model))
-        clickPanel.contentView = PaletteFrame(content: clickContainer)
+        panel.contentView = RevealView(child: PaletteFrame(content: PaletteContainer(model: model)))
+        clickPanel.contentView = RevealView(child: PaletteFrame(content: clickContainer))
         clickPanel.acceptsMouseMovedEvents = true
         preview.contentView = previewView
         // Under the palette, over the dragged window.
@@ -62,6 +62,21 @@ final class PaletteOverlay {
         present(on: display, trigger: .edge) { geometry in
             geometry.frame(under: cursorX, bounds: display.bounds, visible: display.visible)
         }
+    }
+
+    /// Slides the palette out of its tab: down from under the menu bar, its bottom edge
+    /// starting where the tab's is.
+    func openFromTab(on display: LiveDisplay) {
+        present(on: display, trigger: .edge, fromTab: true) {
+            $0.frame(hangingFrom: display.visible, centerX: display.bounds.midX, bounds: display.bounds)
+        }
+    }
+
+    /// The palette's layout for a display: as many thumbnails as its palette has layouts
+    /// (one for an empty palette), shaped like the display.
+    static func geometry(for display: LiveDisplay, count: Int) -> PaletteGeometry {
+        let aspect = display.visible.width / max(display.visible.height, 1)
+        return PaletteGeometry(count: max(count, 1), aspect: aspect, maxWidth: min(display.bounds.width - 40, 900))
     }
 
     /// Opens next to the cursor (the drag keys were held mid-drag).
@@ -89,7 +104,8 @@ final class PaletteOverlay {
         _ = track(mouse)
     }
 
-    private func present(on display: LiveDisplay, trigger: Trigger, frameFor: (PaletteGeometry) -> CGRect) {
+    private func present(on display: LiveDisplay, trigger: Trigger, fromTab: Bool = false,
+                         frameFor: (PaletteGeometry) -> CGRect) {
         let settings = Actions.shared.desks.settings(for: display)
         let custom = Actions.shared.desks.store.library.customLayouts
         let kinds = settings.palette.map(\.kind)
@@ -100,18 +116,34 @@ final class PaletteOverlay {
         model.highlight = nil
         // An empty palette still opens, with one way to fill it.
         zones = kinds.isEmpty ? [[.full]] : kinds.map { $0.zones(custom: custom) }
-        let aspect = display.visible.width / max(display.visible.height, 1)
-        model.geometry = PaletteGeometry(count: zones.count, aspect: aspect, maxWidth: min(display.bounds.width - 40, 900))
+        model.geometry = Self.geometry(for: display, count: zones.count)
         frame = frameFor(model.geometry)
         let panel = activePanel
-        // The window is a little bigger than the palette, for its shadow.
-        let outer = frame.insetBy(dx: -PaletteFrame.margin, dy: -PaletteFrame.margin)
+        // The window is a little bigger than the palette, for its shadow; hanging from the
+        // menu bar (out of the tab) it stops at the menu bar, which hides what's above.
+        let m = PaletteFrame.margin
+        var outer = frame.insetBy(dx: -m, dy: -m)
+        if fromTab { outer.origin.y += m; outer.size.height -= m }
         panel.cover(outer)
-        panel.contentView?.frame = CGRect(origin: .zero, size: outer.size)
+        let reveal = panel.contentView as? RevealView
+        reveal?.frame = CGRect(origin: .zero, size: outer.size)
+        reveal?.topCut = fromTab ? m : 0
+        reveal?.pulledUp = 0
         isShowing = true
 
-        // Drops down from the top edge; with Reduce Motion it only fades in.
         let reduce = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        if fromTab {
+            // Slides down out of the tab; with Reduce Motion it's simply there.
+            panel.alphaValue = 1
+            if !reduce { reveal?.pulledUp = frame.height - PaletteTab.height }
+            reveal?.layoutSubtreeIfNeeded()
+            panel.orderFrontRegardless()
+            if !reduce { reveal?.slideIn() }
+            Diagnostics.note("palette: slid out of the tab on \(display.name) with \(kinds.count) layouts at \(frame)")
+            return
+        }
+
+        // Drops down from the top edge; with Reduce Motion it only fades in.
         let final = panel.frame
         panel.alphaValue = 0
         if !reduce { panel.setFrame(final.offsetBy(dx: 0, dy: 14), display: false) }
@@ -374,6 +406,71 @@ final class PaletteContainer: NSView {
         guard clicks, Int(event.keyCode) == kVK_Escape else { return super.keyDown(with: event) }
         PaletteOverlay.shared.close()
         Diagnostics.note("palette: closed with Esc")
+    }
+}
+
+/// Holds the palette (or its tab) and shows only what's below the menu bar: `topCut` of the
+/// child is above the window's top, and `pulledUp` more of it is pulled up out of sight. The
+/// palette slides out of its tab by animating `pulledUp` to zero.
+@MainActor
+final class RevealView: NSView {
+    let child: NSView
+    var topCut: CGFloat = 0 { didSet { needsLayout = true } }
+    var pulledUp: CGFloat = 0 { didSet { needsLayout = true } }
+    /// The child's full height, when the window is shorter than it (the tab); otherwise the
+    /// child reaches from `topCut` above the window to its bottom.
+    var childHeight: CGFloat? { didSet { needsLayout = true } }
+
+    init(child: NSView) {
+        self.child = child
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.masksToBounds = true
+        addSubview(child)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isFlipped: Bool { true }
+
+    private func childFrame(pulledUp: CGFloat) -> CGRect {
+        CGRect(x: 0, y: -topCut - pulledUp, width: bounds.width, height: childHeight ?? bounds.height + topCut)
+    }
+
+    override func layout() {
+        super.layout()
+        child.frame = childFrame(pulledUp: pulledUp)
+    }
+
+    /// Slides the child down until nothing more is hidden.
+    func slideIn() {
+        let target = childFrame(pulledUp: 0)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.22
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            child.animator().frame = target
+        } completionHandler: {
+            MainActor.assumeIsolated { self.pulledUp = 0 }
+        }
+    }
+}
+
+/// The palette's glass with nothing on it: the tab.
+@MainActor
+final class GlassFill: NSView {
+    private let glass = NSGlassEffectView()
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        glass.cornerRadius = 22
+        addSubview(glass)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        glass.frame = bounds
     }
 }
 

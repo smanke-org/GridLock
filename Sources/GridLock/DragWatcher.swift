@@ -138,8 +138,9 @@ final class DragWatcher {
             if PaletteTab.reaches(cursor, tab: tab.frame) {
                 dwellTimer?.invalidate()
                 dwellTimer = nil
+                // The tab disappears as the palette slides out where it was.
                 tab.close()
-                palette.open(on: display, cursorX: tab.frame.midX)
+                palette.openFromTab(on: display)
                 _ = palette.track(cursor)
                 watchEscape()
                 return
