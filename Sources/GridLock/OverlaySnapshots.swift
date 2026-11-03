@@ -1,12 +1,13 @@
 #if DEBUG
 import AppKit
 import GridLockKit
+import SwiftUI
 
 /// Snapshot pages for the grid and the palette, drawn over a made-up display with one
 /// window on it — never the real screen.
 @MainActor
 enum OverlaySnapshots {
-    static let pages = ["overlay-grid", "overlay-grid-selecting", "palette", "palette-hover"]
+    static let pages = ["overlay-grid", "overlay-grid-selecting", "palette", "palette-hover"] + PaletteDesigns.pages
 
     /// A 1440 × 900 display with a menu bar and a Dock, in its own top-left space.
     static let bounds = CGRect(x: 0, y: 0, width: 1440, height: 900)
@@ -22,9 +23,39 @@ enum OverlaySnapshots {
         let window = self.window ?? NSWindow(contentRect: bounds, styleMask: [.borderless], backing: .buffered, defer: false)
         self.window = window
         window.isReleasedWhenClosed = false
-        let palette = page.hasPrefix("palette")
-        // For the palette, the window is being dragged at the top of the display.
-        let canvas = FakeDesktop(frame: bounds, window: palette ? draggedFrame : windowFrame)
+        let design = PaletteDesigns.number(of: page)
+        let palette = page.hasPrefix("palette") || design != nil
+        // For the palette, the window is being dragged at the top of the display; for the
+        // ring, mid-drag with the ring around the pointer.
+        var dragged = draggedFrame
+        if case .around(let p)? = design.map(PaletteDesigns.placement) {
+            dragged.origin = CGPoint(x: p.x - dragged.width / 2, y: p.y - 14)
+        }
+        let canvas = FakeDesktop(frame: bounds, window: palette ? dragged : windowFrame)
+        if let design {
+            // The right third of Columns × 3, as on palette-hover.
+            let kinds = Palette.suggested(for: grid).map(\.kind)
+            let target = GridMath.frame(for: kinds[1].zones()[2], visible: visible, gap: grid.gap, margin: grid.margin)
+            let preview = DropPreviewView(frame: target)
+            preview.size = target.size
+            canvas.addSubview(preview)
+            let root = PaletteDesigns.view(design, .init(kinds: kinds)).fixedSize()
+            let measured = NSHostingController(rootView: root).sizeThatFits(in: bounds.size)
+            // Room for shadows and lifted tiles to spill over without being clipped.
+            let spill: CGFloat = 40
+            let host = NSHostingView(rootView: root.padding(spill))
+            host.sizingOptions = []
+            let size = CGSize(width: ceil(measured.width) + 2 * spill, height: ceil(measured.height) + 2 * spill)
+            switch PaletteDesigns.placement(design) {
+            case .top:
+                host.frame = CGRect(x: (cursor.x - size.width / 2).rounded(), y: visible.minY + 8 - spill, width: size.width, height: size.height)
+            case .around(let p):
+                host.frame = CGRect(x: (p.x - size.width / 2).rounded(), y: (p.y - size.height / 2).rounded(), width: size.width, height: size.height)
+            case .fullWidth:
+                host.frame = CGRect(x: -spill, y: visible.minY - spill, width: size.width, height: size.height)
+            }
+            canvas.addSubview(host)
+        }
         switch page {
         case "overlay-grid", "overlay-grid-selecting":
             let view = GridView(frame: bounds)
@@ -59,12 +90,12 @@ enum OverlaySnapshots {
             container.frame = frame
             canvas.addSubview(container)
         default:
-            return nil
+            if design == nil { return nil }
         }
         window.contentView = canvas
         window.setFrame(CGRect(x: -20000, y: -20000, width: bounds.width, height: bounds.height), display: true)
         window.orderFrontRegardless()
-        try? await Task.sleep(for: .milliseconds(400))
+        try? await Task.sleep(for: .milliseconds(design == nil ? 400 : 900))
         return window
     }
 }
