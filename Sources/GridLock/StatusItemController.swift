@@ -51,6 +51,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         desk.toolTip = "Grids and palettes are kept for each desk. Click to change this desk's settings."
 
         menu.addItem(.separator())
+        if let staged = AutoUpdater.shared.staged {
+            menu.addItem(withTitle: "Update to \(staged.version) Now", action: #selector(installStagedUpdate), target: self)
+                .showIcon("arrow.down.circle")
+        } else if let pending = UpdateAvailability.shared.pending {
+            menu.addItem(withTitle: "Update to \(pending)…", action: #selector(checkForUpdates), target: self)
+                .showIcon("arrow.down.circle").toolTip = "A newer release is available. Installing it needs your confirmation."
+        } else {
+            menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), target: self)
+                .showIcon("arrow.down.circle")
+        }
         menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",", target: self).showIcon("gearshape")
         menu.addItem(withTitle: "Quit GridLock", action: #selector(quit), keyEquivalent: "q", target: self)
     }
@@ -67,6 +77,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func undoMove() { Actions.shared.undo() }
     @objc private func showDesks() { SettingsWindow.shared.show(tab: "Desks") }
     @objc private func showSettings() { SettingsWindow.shared.show() }
+    @objc private func checkForUpdates() { UpdateController.checkForUpdates() }
+    @objc private func installStagedUpdate() { AutoUpdater.shared.installNow() }
     @objc private func quit() { NSApp.terminate(nil) }
 }
 

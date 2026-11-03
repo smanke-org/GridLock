@@ -10,6 +10,10 @@ final class Actions {
     /// Set at launch.
     var desks: DeskTracker!
 
+    /// True while the grid or the palette is on screen; the overlays set it. An automatic
+    /// update waits until it is false, so GridLock never restarts in the middle of a placement.
+    var isOverlayOpen = false
+
     /// Shows the grid over the display holding the frontmost window. Filled in by the grid
     /// overlay (S-003); until then it says so in the log.
     var showGridHandler: (() -> Void)?

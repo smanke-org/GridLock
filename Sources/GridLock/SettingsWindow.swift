@@ -30,6 +30,14 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         if let tab, let tabs = window?.contentViewController as? SettingsTabs { tabs.select(tab) }
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+        // After an update the user didn't see the notes for, what changed.
+        if let window { WhatsNew.shared.present(on: window) }
+    }
+
+    /// This version's notes, because the user asked (What's New… in General).
+    func showWhatsNew() {
+        show()
+        if let window { WhatsNew.shared.present(on: window, asked: true) }
     }
 
     var debugWindow: NSWindow? { window }

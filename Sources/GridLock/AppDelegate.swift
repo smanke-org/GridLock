@@ -21,6 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Before anything saves a setting: an empty domain means a brand-new install.
+        let newInstall = SettingsSync.domainIsEmpty()
         Diagnostics.note("launch \(AppInfo.displayVersion) from \(Bundle.main.bundlePath)")
         AppAppearance.start()
         Actions.shared.desks = desks
@@ -41,6 +43,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShortcutsLensReport.start { HotKeyCenter.shared.reportedShortcuts }
         WelcomeWindow.shared.onGranted = { [weak self] in self?.statusItem.updateIcon() }
         launchAtLogin.enableOnFirstRun()
+        // An automatic update must not restart GridLock while the grid or the palette is up.
+        AutoUpdater.shared.appBusyReason = { Actions.shared.isOverlayOpen ? "the grid or the palette is open" : nil }
+        SettingsSync.shared.onApply = {
+            AppSettings.shared.reload()
+            HotKeyCenter.shared.apply()
+            MenuHub.shared.reload()
+        }
+        if newInstall { SettingsSync.shared.adoptOnNewInstall() }
+        SettingsSync.shared.start()
+        AutoUpdater.shared.start(newInstall: newInstall)
 
         if !AXWindows.isTrusted {
             // First run: say why nothing will happen yet. Opened at launch, which is a
