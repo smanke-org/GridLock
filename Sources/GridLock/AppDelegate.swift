@@ -165,6 +165,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showHelp() { HelpWindow.shared.show() }
 
+    /// The app menu's About item (`AppPresence.mainMenu`).
+    @objc func showAbout() { AppInfo.showAbout() }
+
     /// The developer's site, which lists every app.
     @objc func showOtherApps() {
         if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
@@ -173,7 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Development affordance, only with GRIDLOCK_DEBUG=1. A distributed notification
     /// `com.smanke.GridLock.debug` whose object is a command runs it in the installed,
     /// permission-holding build; results go to ~/Library/Logs/GridLock.log. Commands:
-    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|help|<tab>`, `help:<topic>`, `grid:show`, `palette:open`,
+    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|help|about|<tab>`, `help:<topic>`, `grid:show`, `palette:open`,
     /// `snap:<zone name>`, `undo:last`, `sync:on|off|pull`, `dump:layouts`, `desk:notify` (the new-desk notification for this desk).
     private func listenForDebugCommands() {
         guard Diagnostics.isEnabled else { return }
@@ -197,6 +200,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Diagnostics.note("debug: front \(w.map { "\($0.appName) \($0.frame)" } ?? "none")")
         case ("show", "settings"): SettingsWindow.shared.show()
         case ("show", "help"): HelpWindow.shared.show()
+        case ("show", "about"): AppInfo.showAbout()
         case ("help", let topic): HelpWindow.shared.show(topic: topic)
         case ("show", let tab): SettingsWindow.shared.show(tab: tab)
         case ("grid", "show"): Actions.shared.showGrid()

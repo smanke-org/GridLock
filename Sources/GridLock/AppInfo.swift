@@ -18,4 +18,10 @@ enum AppInfo {
     static var displayVersion: String {
         version == build ? "v\(version)" : "v\(version) (\(build))"
     }
+
+    /// The About window: the version and the last 10 releases' notes.
+    @MainActor
+    static func showAbout() {
+        AboutWindow.shared.show()
+    }
 }

@@ -44,7 +44,7 @@ enum Snapshot {
     static var pages: [String] {
         ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"]
             + deskPages + OverlaySnapshots.pages
-            + Help.topics.map { "help-\($0.id)" } + ["icon", "menu", "update-prompt"]
+            + Help.topics.map { "help-\($0.id)" } + ["icon", "menu", "update-prompt", "about"]
     }
 
     /// What the pictures can't show: each Settings pane's ? button presses through to a Help
@@ -81,6 +81,12 @@ enum Snapshot {
         }
         if OverlaySnapshots.pages.contains(page) { return await OverlaySnapshots.render(page) }
         if page == "icon" { return iconWindow() }
+        if page == "about" {
+            // The notes come from GitHub; give them a moment.
+            AppInfo.showAbout()
+            try? await Task.sleep(for: .seconds(3))
+            return AboutWindow.shared.debugWindow
+        }
         if page == "menu" { return menuWindow() }
         if page == "update-prompt" {
             // Sample notes; the real prompt reads them from the GitHub releases.

@@ -119,10 +119,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func showHelp() { HelpWindow.shared.show() }
     @objc private func checkForUpdates() { UpdateController.checkForUpdates() }
     @objc private func installStagedUpdate() { AutoUpdater.shared.installNow() }
-    @objc private func showAbout() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(nil)
-    }
+    @objc private func showAbout() { AppInfo.showAbout() }
     /// The developer's site, which lists every app.
     @objc private func showOtherApps() {
         if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
