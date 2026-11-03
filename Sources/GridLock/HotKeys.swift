@@ -126,11 +126,39 @@ enum ShortcutCatalog {
 
     static var all: [Item] {
         [
-            Item(id: "grid", title: "Show Grid", category: "Grid",
-                 defaultKey: HotKey(keyCode: UInt32(kVK_ANSI_G), modifiers: UInt32(controlKey | optionKey), display: "⌃⌥G")),
-            Item(id: "undo", title: "Undo Move", category: "Grid",
-                 defaultKey: HotKey(keyCode: UInt32(kVK_ANSI_Z), modifiers: UInt32(controlKey | optionKey), display: "⌃⌥Z")),
+            Item(id: "grid", title: "Show Grid", category: "Grid", defaultKey: controlOption(kVK_ANSI_G, "G")),
+            Item(id: "undo", title: "Undo Move", category: "Grid", defaultKey: controlOption(kVK_ANSI_Z, "Z")),
         ]
+        + zones.map { name, title, key in Item(id: "zone." + name, title: title, category: "Zones", defaultKey: key) }
+        + [
+            Item(id: "display.next", title: "Next Display", category: "Displays",
+                 defaultKey: HotKey(keyCode: UInt32(kVK_RightArrow), modifiers: UInt32(controlKey | optionKey | cmdKey), display: "⌃⌥⌘→")),
+            Item(id: "display.previous", title: "Previous Display", category: "Displays",
+                 defaultKey: HotKey(keyCode: UInt32(kVK_LeftArrow), modifiers: UInt32(controlKey | optionKey | cmdKey), display: "⌃⌥⌘←")),
+        ]
+    }
+
+    /// Every zone in `Actions.namedZones`, in the order Settings lists them, with its default.
+    private static let zones: [(String, String, HotKey?)] = [
+        ("left-half", "Left Half", controlOption(kVK_LeftArrow, "←")),
+        ("right-half", "Right Half", controlOption(kVK_RightArrow, "→")),
+        ("top-half", "Top Half", nil),
+        ("bottom-half", "Bottom Half", nil),
+        ("left-third", "Left Third", nil),
+        ("center-third", "Center Third", nil),
+        ("right-third", "Right Third", nil),
+        ("left-two-thirds", "Left Two-Thirds", nil),
+        ("right-two-thirds", "Right Two-Thirds", nil),
+        ("top-left", "Top Left Quarter", nil),
+        ("top-right", "Top Right Quarter", nil),
+        ("bottom-left", "Bottom Left Quarter", nil),
+        ("bottom-right", "Bottom Right Quarter", nil),
+        ("maximize", "Maximize", controlOption(kVK_UpArrow, "↑")),
+        ("center", "Center", controlOption(kVK_ANSI_C, "C")),
+    ]
+
+    private static func controlOption(_ code: Int, _ key: String) -> HotKey {
+        HotKey(keyCode: UInt32(code), modifiers: UInt32(controlKey | optionKey), display: "⌃⌥" + key)
     }
 
     static func item(_ id: String) -> Item? { all.first { $0.id == id } }

@@ -15,6 +15,9 @@ final class Actions {
     /// overlay at launch (`startInteraction`).
     var showGridHandler: (() -> Void)?
 
+    /// Repeated presses of a half's shortcut (S-031).
+    private var cycleState = SizeCycle()
+
     /// True while the grid or the palette is on screen; automatic updates wait for it.
     var isOverlayOpen: Bool { GridOverlay.shared.isShowing || PaletteOverlay.shared.isShowing }
 
@@ -23,6 +26,8 @@ final class Actions {
     func startInteraction() {
         showGridHandler = { GridOverlay.shared.toggle() }
         DragWatcher.shared.start()
+        assert(Set(ShortcutCatalog.all.map(\.id).filter { $0.hasPrefix("zone.") }.map { String($0.dropFirst(5)) })
+               == Set(Actions.namedZones.keys), "every named zone has a shortcut row")
         Diagnostics.note("macOS edge tiling: \(SystemEdgeTiling.shared.isOn ? "on" : "off")")
     }
 
@@ -62,13 +67,45 @@ final class Actions {
         if !WindowMover.shared.undo() { Diagnostics.note("undo: nothing to undo") }
     }
 
-    /// A global shortcut that `perform(shortcut:)` doesn't handle itself.
+    /// A global shortcut that `perform(shortcut:)` doesn't handle itself: zones (the halves
+    /// cycling through sizes when pressed again) and the next or previous display.
     func performCatalog(shortcut id: String) {
-        if id.hasPrefix("zone."), let zone = Actions.namedZones[String(id.dropFirst(5))] {
-            snapFrontmost(to: zone)
-        } else {
-            Diagnostics.note("shortcut \(id) has no action")
+        switch id {
+        case "display.next": sendFrontmostToDisplay(step: 1)
+        case "display.previous": sendFrontmostToDisplay(step: -1)
+        default:
+            let name = String(id.dropFirst("zone.".count))
+            guard id.hasPrefix("zone."), let zone = Actions.namedZones[name] else {
+                return Diagnostics.note("shortcut \(id) has no action")
+            }
+            guard let side = SizeCycle.side(forZone: name) else { snapFrontmost(to: zone); return }
+            guard AXWindows.isTrusted else { return WelcomeWindow.shared.show() }
+            guard let window = WindowMover.shared.frontmostWindow(), let display = desks.display(holding: window.frame) else {
+                return Diagnostics.note("snap: no window to place")
+            }
+            let identity = "\(window.pid)-\(CFHash(window.element))"
+            let step = cycleState.zone(for: side, window: identity, order: SizeCycle.order, now: ProcessInfo.processInfo.systemUptime)
+            snap(window, to: step, on: display)
         }
+    }
+
+    /// Moves the frontmost window to the next display left to right (or the previous one),
+    /// keeping its share of the grid: columns 4–6 of 6 become 7–12 of 12.
+    func sendFrontmostToDisplay(step: Int) {
+        guard AXWindows.isTrusted else { return WelcomeWindow.shared.show() }
+        var displays = desks.live
+        if displays.isEmpty { displays = DisplayCatalog.current() }
+        guard let window = WindowMover.shared.frontmostWindow(),
+              let from = LiveDisplay.index(holding: window.frame, in: displays) else {
+            return Diagnostics.note("next display: no window to place")
+        }
+        let to = DisplayOrder.next(after: from, in: displays, step: step)
+        guard to != from else { return Diagnostics.note("next display: only one display") }
+        let source = desks.settings(for: displays[from]).grid
+        let target = desks.settings(for: displays[to]).grid
+        let cells = GridMath.cells(for: window.frame, grid: source, visible: displays[from].visible).mapped(from: source, to: target)
+        snap(window, to: cells, on: displays[to])
+        Diagnostics.note("next display: \(window.appName) \(displays[from].name) → \(displays[to].name) \(cells)")
     }
 
     /// Debug-hook commands for the grid and the palette (see AppDelegate). False when the
@@ -77,6 +114,8 @@ final class Actions {
         switch (verb, argument) {
         case ("grid", "dump"):
             Diagnostics.note("debug: \(GridOverlay.shared.dump())")
+        case ("shortcut", let id):
+            perform(shortcut: id)
         case ("palette", "dump"):
             Diagnostics.note("debug: \(PaletteOverlay.shared.dump())")
         case ("grid", "close"):
