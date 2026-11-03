@@ -36,11 +36,13 @@ enum Snapshot {
     }
 
     static var pages: [String] {
-        ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"]
+        ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"] + deskPages
     }
 
     /// Shows a page and returns the window to capture once it has drawn.
     private static func render(_ page: String) async -> NSWindow? {
+        resetDeskSelection()
+        if deskPages.contains(page) { return await renderDeskPage(page) }
         if page.hasPrefix("settings-") {
             let tab = page.dropFirst("settings-".count).capitalized
             SettingsWindow.shared.show(tab: tab)

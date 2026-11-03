@@ -10,7 +10,7 @@ public enum LayoutFamily: String, CaseIterable, Codable, Sendable {
         case .columns: return "Columns"
         case .rows: return "Rows"
         case .grid: return "Grid"
-        case .split: return "Thirds Split"
+        case .split: return "Split"
         case .maximize: return "Maximize"
         case .center: return "Center"
         }
