@@ -21,16 +21,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Before anything saves a setting: an empty domain means a brand-new install.
+        let newInstall = SettingsSync.domainIsEmpty()
         Diagnostics.note("launch \(AppInfo.displayVersion) from \(Bundle.main.bundlePath)")
         AppAppearance.start()
         Actions.shared.desks = desks
         SettingsWindow.shared.desks = desks
         SettingsWindow.shared.launchAtLogin = launchAtLogin
         statusItem = StatusItemController(desks: desks)
-        NSApp.mainMenu = AppPresence.mainMenu(appName: "GridLock", settingsTitle: "Settings…",
-                                              target: self, settings: #selector(showSettings))
+        let mainMenu = AppPresence.mainMenu(appName: "GridLock", settingsTitle: "Settings…",
+                                            target: self, settings: #selector(showSettings))
+        // Right below About in the app menu.
+        let otherApps = NSMenuItem(title: "Our other apps…", action: #selector(showOtherApps), keyEquivalent: "")
+        otherApps.target = self
+        mainMenu.items.first?.submenu?.insertItem(otherApps, at: 1)
+        // Help menu, with the standard ⌘? (macOS adds its search field).
+        let helpItem = NSMenuItem()
+        let help = NSMenu(title: "Help")
+        let helpOpen = NSMenuItem(title: "GridLock Help", action: #selector(showHelp), keyEquivalent: "?")
+        helpOpen.target = self
+        help.addItem(helpOpen)
+        helpItem.submenu = help
+        mainMenu.addItem(helpItem)
+        NSApp.helpMenu = help
+        NSApp.mainMenu = mainMenu
         #if DEBUG
         // Renders pages to PNGs and quits; starts no shortcuts, palette or updates.
+        Snapshot.menu = { [statusItem] in statusItem!.freshMenu() }
         if Snapshot.runIfAsked(desks: desks) { return }
         #endif
 
@@ -43,6 +60,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShortcutsLensReport.start { HotKeyCenter.shared.reportedShortcuts }
         WelcomeWindow.shared.onGranted = { [weak self] in self?.statusItem.updateIcon() }
         launchAtLogin.enableOnFirstRun()
+        // An automatic update must not restart GridLock while the grid or the palette is up.
+        AutoUpdater.shared.appBusyReason = { Actions.shared.isOverlayOpen ? "the grid or the palette is open" : nil }
+        SettingsSync.shared.onApply = {
+            AppSettings.shared.reload()
+            HotKeyCenter.shared.apply()
+            MenuHub.shared.reload()
+        }
+        if newInstall { SettingsSync.shared.adoptOnNewInstall() }
+        SettingsSync.shared.start()
+        AutoUpdater.shared.start(newInstall: newInstall)
 
         if !AXWindows.isTrusted {
             // First run: say why nothing will happen yet. Opened at launch, which is a
@@ -94,20 +121,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// `gridlock://` URLs (from ToolHUD, Shortcuts or a script): `grid`, `undo`,
-    /// `snap?zone=left-half`, `settings`. They act on the frontmost window of another app.
+    /// `snap?zone=left-half` (or `snap-left-half`), `settings`; see `URLAction`. They act
+    /// on the frontmost window of another app.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "gridlock" {
-            switch url.host {
-            case "grid": Actions.shared.showGrid()
-            case "undo": Actions.shared.undo()
-            case "snap":
-                let name = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "zone" }?.value
+        for action in urls.compactMap(URLAction.init) {
+            switch action {
+            case .grid: Actions.shared.showGrid()
+            case .undo: Actions.shared.undo()
+            case .snap(let name):
                 if let zone = name.flatMap({ Actions.namedZones[$0] }) {
                     Actions.shared.snapFrontmost(to: zone)
                 } else {
                     Diagnostics.note("url: unknown zone \(name ?? "nil")")
                 }
-            default: showSettings()
+            case .settings: showSettings()
             }
         }
     }
@@ -116,10 +143,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindow.shared.show()
     }
 
+    @objc func showHelp() { HelpWindow.shared.show() }
+
+    /// The developer's site, which lists every app.
+    @objc func showOtherApps() {
+        if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
+    }
+
     /// Development affordance, only with GRIDLOCK_DEBUG=1. A distributed notification
     /// `com.smanke.GridLock.debug` whose object is a command runs it in the installed,
     /// permission-holding build; results go to ~/Library/Logs/GridLock.log. Commands:
-    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|<tab>`, `grid:show`,
+    /// `dump:desk`, `dump:menu`, `dump:front`, `show:settings|help|<tab>`, `help:<topic>`, `grid:show`,
     /// `snap:<zone name>`, `undo:last`, `desk:notify` (the new-desk notification for this desk).
     private func listenForDebugCommands() {
         guard Diagnostics.isEnabled else { return }
@@ -142,6 +176,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let w = WindowMover.shared.frontmostWindow()
             Diagnostics.note("debug: front \(w.map { "\($0.appName) \($0.frame)" } ?? "none")")
         case ("show", "settings"): SettingsWindow.shared.show()
+        case ("show", "help"): HelpWindow.shared.show()
+        case ("help", let topic): HelpWindow.shared.show(topic: topic)
         case ("show", let tab): SettingsWindow.shared.show(tab: tab)
         case ("grid", "show"): Actions.shared.showGrid()
         case ("snap", let name):

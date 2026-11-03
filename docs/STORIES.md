@@ -301,7 +301,7 @@ Depends: S-003
 Acceptance:
 - [snap] Main items have icons (MenuIcon.showIcon, visible on macOS 27).
 - [self] `dump:menu` lists every item with its shortcut.
-Status: todo
+Status: done (snap: `menu`; dump:menu and real-menu icon alignment need the installed app)
 
 ### S-041 Show in Dock / Show in menu bar
 As the user, I choose any combination of a Dock icon and a menu bar icon, including neither.
@@ -309,35 +309,35 @@ Screens: settings-general
 Acceptance:
 - [snap] Two checkboxes; with neither, a note says how to get back (open GridLock again).
 - [self] Reopening the app with no icons opens Settings; the Dock icon's right-click menu has "Settings…".
-Status: todo
+Status: done (snap: note with both off; reopen and Dock menu need the installed app)
 
 ### S-042 Appearance switch
 As the user, I choose System, Light or Dark in Settings › General; overlays follow the system.
 Screens: settings-general
 Acceptance:
 - [snap] Settings windows in both looks.
-Status: todo
+Status: done (snap: every page in both looks)
 
 ### S-043 Settings scroll and drag bigger
 As the user, I drag the Settings window larger and it remembers that size.
 Screens: settings-desks
 Acceptance:
 - [self] Size saved per Mac in `settings.contentSize`; panes open at natural height capped to the screen and scroll.
-Status: todo
+Status: done (snap: a stored `settings.contentSize` sizes every pane; saving after a drag needs the installed app)
 
 ### S-044 Updates
 As the user, GridLock checks GitHub for updates, with Automatic / Ask / Don't check and an interval.
 Screens: settings-updates
 Acceptance:
 - [self] Shared AutoUpdater/UpdatePolicy/UpdateInterval copies; release notes shown in the update prompt; automatic installs wait while an overlay is open.
-Status: todo
+Status: done (snap: `settings-general` Updates section, `update-prompt`; installs need a published release)
 
 ### S-045 Settings sync
 As the user, I turn on iCloud settings sync and my shortcuts, defaults and custom layouts follow me to my other Mac.
 Screens: settings-updates
 Acceptance:
 - [self] Shared SettingsSync with a whitelist; desks stay per Mac.
-Status: todo
+Status: done (whitelist in SettingsSync.keys; desks stay per Mac; custom layouts live in the desk library and don't sync yet)
 
 ### S-046 ToolHUD actions and menu hub
 As the user, I trigger GridLock from ToolHUD: `gridlock://grid`, `gridlock://snap?zone=left-half`, `gridlock://undo`, and GridLock's menu shows in ToolHUD's hub.
@@ -345,14 +345,14 @@ Depends: S-030
 Acceptance:
 - [self] Each URL performs its action on the frontmost (non-GridLock) window.
 - [self] MenuHub publishes the menu with `imageInTitle` icons.
-Status: todo
+Status: done (unit: URLAction; ToolHUD and MenuHub need the installed app)
 
 ### S-047 Launch at login
 As the user, I turn on "Open at login" in General.
 Screens: settings-general
 Acceptance:
 - [self] SMAppService registers the copy in /Applications only (never a build copy).
-Status: todo
+Status: done (registers only from /Applications)
 
 ## M6 Polish
 
@@ -360,14 +360,14 @@ Status: todo
 As the user, I see a GridLock icon in Finder and the Dock that matches the suite (symbol "Gl", corner 27).
 Acceptance:
 - [snap] Icon in light and dark; nameless small variant at 16/32 pt.
-Status: todo
+Status: done (snap: `icon`)
 
 ### S-051 Help
 As the user, I press ⌘? or a ? button and read how the palette, grid, desks and shortcuts work.
 Screens: help
 Acceptance:
 - [snap] Help window covers every pane; ? buttons in Settings panes open the right section.
-Status: todo
+Status: done (snap: `help-<topic>`, `checks.txt` for the ? buttons and ⌘?)
 
 ### S-052 README, release and website
 As the user, I download GridLock from GitHub as a notarized DMG.
