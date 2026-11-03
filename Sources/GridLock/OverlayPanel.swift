@@ -12,8 +12,10 @@ final class OverlayPanel: NSPanel {
     init(takesKeys: Bool, clickThrough: Bool) {
         self.takesKeys = takesKeys
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
-        level = .popUpMenu
+        // Floating first: setting isFloatingPanel resets the level to .floating, which put
+        // the grid and the palette under Notification Center's banners.
         isFloatingPanel = true
+        level = .popUpMenu
         becomesKeyOnlyIfNeeded = !takesKeys
         hidesOnDeactivate = false
         isOpaque = false
@@ -26,6 +28,10 @@ final class OverlayPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
         AppAppearance.followSystem(self)
     }
+
+    /// Exactly where it's put: AppKit would otherwise push it below the menu bar, moving
+    /// the palette (and its shadow margin) away from where the pointer is tracked.
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
 
     override var canBecomeKey: Bool { takesKeys }
     override var canBecomeMain: Bool { false }

@@ -30,6 +30,7 @@ final class PaletteOverlay {
     private let clickPanel = OverlayPanel(takesKeys: true, clickThrough: false)
     private let preview = OverlayPanel(takesKeys: false, clickThrough: true)
     private let previewView = DropPreviewView()
+    private lazy var clickContainer = PaletteContainer(model: model, clicks: true)
     private let model = PaletteModel()
     private var display: LiveDisplay?
     /// The palette's frame, global top-left.
@@ -48,9 +49,8 @@ final class PaletteOverlay {
     }
 
     init() {
-        panel.contentView = PaletteContainer(model: model)
-        let clickable = PaletteContainer(model: model, clicks: true)
-        clickPanel.contentView = clickable
+        panel.contentView = PaletteFrame(content: PaletteContainer(model: model))
+        clickPanel.contentView = PaletteFrame(content: clickContainer)
         clickPanel.acceptsMouseMovedEvents = true
         preview.contentView = previewView
         // Under the palette, over the dragged window.
@@ -104,8 +104,10 @@ final class PaletteOverlay {
         model.geometry = PaletteGeometry(count: zones.count, aspect: aspect, maxWidth: min(display.bounds.width - 40, 900))
         frame = frameFor(model.geometry)
         let panel = activePanel
-        panel.cover(frame)
-        panel.contentView?.frame = CGRect(origin: .zero, size: frame.size)
+        // The window is a little bigger than the palette, for its shadow.
+        let outer = frame.insetBy(dx: -PaletteFrame.margin, dy: -PaletteFrame.margin)
+        panel.cover(outer)
+        panel.contentView?.frame = CGRect(origin: .zero, size: outer.size)
         isShowing = true
 
         // Drops down from the top edge; with Reduce Motion it only fades in.
@@ -115,7 +117,7 @@ final class PaletteOverlay {
         if !reduce { panel.setFrame(final.offsetBy(dx: 0, dy: 14), display: false) }
         if case .shortcut = trigger {
             panel.makeKeyAndOrderFront(nil)
-            panel.makeFirstResponder(panel.contentView)
+            panel.makeFirstResponder(clickContainer)
         } else {
             panel.orderFrontRegardless()
         }
@@ -372,6 +374,72 @@ final class PaletteContainer: NSView {
         guard clicks, Int(event.keyCode) == kVK_Escape else { return super.keyDown(with: event) }
         PaletteOverlay.shared.close()
         Diagnostics.note("palette: closed with Esc")
+    }
+}
+
+/// The palette with its frame: a black keyline around the glass and a tight shadow under
+/// it, so it stands apart from whatever window is behind. The shadow is drawn only outside
+/// the palette, so none of it shows through the glass, and the window around the palette is
+/// `margin` bigger on every side to hold it.
+@MainActor
+final class PaletteFrame: NSView {
+    static let margin: CGFloat = 12
+    private static let radius: CGFloat = 22
+    private static let keyline: CGFloat = 1.5
+
+    private let content: NSView
+    private let line = Keyline()
+
+    init(content: NSView) {
+        self.content = content
+        super.init(frame: .zero)
+        addSubview(content)
+        addSubview(line)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isFlipped: Bool { true }
+
+    private var palette: CGRect { bounds.insetBy(dx: Self.margin, dy: Self.margin) }
+
+    override func layout() {
+        super.layout()
+        content.frame = palette
+        line.frame = bounds
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let shape = NSBezierPath(roundedRect: palette, xRadius: Self.radius, yRadius: Self.radius)
+        NSGraphicsContext.saveGraphicsState()
+        let outside = NSBezierPath(rect: bounds)
+        outside.append(shape)
+        outside.windingRule = .evenOdd
+        outside.addClip()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.35)
+        shadow.shadowBlurRadius = 6
+        // Unflipped space: negative height is down.
+        shadow.shadowOffset = NSSize(width: 0, height: -3)
+        shadow.set()
+        NSColor.black.setFill()
+        shape.fill()
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// The keyline, over the glass's edge. Takes no clicks.
+    private final class Keyline: NSView {
+        override var isFlipped: Bool { true }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func draw(_ dirtyRect: NSRect) {
+            let w = PaletteFrame.keyline
+            let r = bounds.insetBy(dx: PaletteFrame.margin + w / 2, dy: PaletteFrame.margin + w / 2)
+            let path = NSBezierPath(roundedRect: r, xRadius: PaletteFrame.radius - w / 2, yRadius: PaletteFrame.radius - w / 2)
+            path.lineWidth = w
+            NSColor.black.setStroke()
+            path.stroke()
+        }
     }
 }
 

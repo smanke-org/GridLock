@@ -23,3 +23,13 @@ The one picked becomes the palette, with its own spec, tokens and states (design
 | 13 | HUD | sci-fi, tactical, precise | bracketed heads-up panel |
 | 14 | Swiss | editorial, typographic, quiet | numerals and hairlines |
 | 15 | Isometric | dimensional, crafted, toy-like | tilted 3D slabs |
+
+## Decision (2026-11-03)
+
+The user kept the current palette and asked for a black keyline and a shadow; of ten
+framing options (snapshot pages `keyline-01` … `keyline-10`, since removed) they picked
+**"Medium line, tight shadow"**: a 1.5 pt solid black keyline on the glass's 22 pt corner,
+and one shadow, black at 35 %, blur 6, 3 pt down, drawn only outside the palette
+(`PaletteFrame` in Palette.swift). The palette's window is 12 pt bigger on every side to
+hold the shadow. The fifteen new directions above were not taken; their code is in git
+history (commit deea66b).
