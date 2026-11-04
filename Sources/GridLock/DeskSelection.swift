@@ -12,7 +12,8 @@ final class DeskSelection {
 
     /// Nil means the current desk.
     var deskID: UUID?
-    /// Nil means the desk's first display (left to right).
+    /// Nil means the desk's main display (the one with the menu bar), where the palette is
+    /// used most; the leftmost one was easy to edit by mistake with the picker scrolled away.
     var displayKey: String?
     /// Copy Settings keeps a display's settings here for Paste Settings, on any desk.
     var clipboard: DisplaySettings?
@@ -27,10 +28,13 @@ final class DeskSelection {
         tracker.store.desk(id: deskID) ?? tracker.currentDesk
     }
 
-    /// The selected display of a desk, falling back to its first when the key isn't one of it.
+    /// The selected display of a desk, falling back to its main display (at the origin of
+    /// the arrangement), then its first, when the key isn't one of it.
     func display(of desk: Desk) -> DisplayRecord? {
         let ordered = Self.ordered(desk.displays)
-        return ordered.first { $0.key == displayKey } ?? ordered.first
+        return ordered.first { $0.key == displayKey }
+            ?? ordered.first { $0.bounds.x == 0 && $0.bounds.y == 0 }
+            ?? ordered.first
     }
 
     func select(desk id: UUID, display key: String? = nil) {

@@ -26,7 +26,8 @@ struct PaletteSettings: View {
                     }
                     Caption("Each display keeps its own palette at each desk. Drag layouts into the palette and drag to reorder them, or use the + and − buttons.")
                 }
-                Section {
+                // Named here too, since the pickers scroll out of sight above the lists.
+                Section("\(display.title) Palette") {
                     PaletteEditor(desks: desks, desk: desk, display: display)
                 }
                 Section("Preview") {
