@@ -39,6 +39,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AgentSocket.isTestRun {
             desks.start()
             AgentSocket.listen { AgentRouter.handle($0) }
+            // Opt-in, for testing ShortcutsLens's Change Shortcut on the test copy's own
+            // settings. Its shortcuts register but do nothing when pressed.
+            if ProcessInfo.processInfo.environment["GRIDLOCK_DEBUG_SHORTCUTS"] == "1" {
+                HotKeyCenter.shared.apply()
+                startShortcutsLensReport()
+            }
             return
         }
         #endif
@@ -73,7 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HotKeyCenter.shared.perform = { id in Actions.shared.perform(shortcut: id) }
         HotKeyCenter.shared.apply()
         Actions.shared.startInteraction()
-        ShortcutsLensReport.start { HotKeyCenter.shared.reportedShortcuts }
+        startShortcutsLensReport()
         WelcomeWindow.shared.onGranted = { [weak self] in self?.statusItem.updateIcon() }
         launchAtLogin.enableOnFirstRun()
         // An automatic update must not restart GridLock while the grid or the palette is up.
@@ -95,6 +101,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // deliberate act by the user, never from a background timer.
             WelcomeWindow.shared.show()
         }
+    }
+
+    /// ShortcutsLens lists the shortcuts and can give them new keys (its Change Shortcut).
+    private func startShortcutsLensReport() {
+        ShortcutsLensReport.start({ HotKeyCenter.shared.reportedShortcuts }, change: { id, keyCode, modifiers in
+            HotKeyCenter.shared.change(id: id, keyCode: keyCode, carbonModifiers: modifiers)
+        })
     }
 
     /// Quitting asks first while "Ask before quitting" is on — not when macOS is logging out,
