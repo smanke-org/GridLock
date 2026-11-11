@@ -225,3 +225,69 @@ struct SpeedTests {
         #expect(!PaletteTab.reaches(CGPoint(x: tab.maxX + 60, y: tab.midY), tab: tab))
     }
 }
+
+struct PaletteLayoutTests {
+    private let base = PaletteGeometry(count: 3, aspect: 1.6, maxWidth: 900)
+
+    @Test func noneKeepsTheShelfAndAddsRoomForTheVersion() {
+        let plain = PaletteLayout(base: base, style: .none, showsUndo: true, showsVersion: false)
+        #expect(plain.geometry == base)
+        #expect(plain.undo == nil)
+        let versioned = PaletteLayout(base: base, style: .none, showsUndo: true, showsVersion: true)
+        #expect(versioned.geometry.size.height == base.size.height + 8)
+        #expect(versioned.version?.spot == .trailing)
+    }
+
+    @Test func endTileSitsAfterTheLayouts() {
+        let l = PaletteLayout(base: base, style: .endTile, showsUndo: true, showsVersion: false)
+        let tile = base.thumbnails[0].width
+        #expect(l.geometry.size.width == base.size.width + tile + PaletteGeometry.spacing)
+        #expect(l.undo!.minX > base.thumbnails.last!.maxX)
+        #expect(l.isOnUndo(CGPoint(x: l.undo!.midX, y: l.undo!.midY)))
+        #expect(!l.isOnUndo(CGPoint(x: base.thumbnails[0].midX, y: base.thumbnails[0].midY)))
+    }
+
+    @Test func hiddenUndoLeavesNoTarget() {
+        for style in UndoTargetStyle.allCases {
+            let l = PaletteLayout(base: base, style: style, showsUndo: false, showsVersion: false)
+            #expect(l.undo == nil)
+            #expect(!l.isOnUndo(CGPoint(x: 5, y: 5)))
+        }
+    }
+
+    @Test func leadingTileMovesTheLayoutsRight() {
+        let l = PaletteLayout(base: base, style: .leadingTile, showsUndo: true, showsVersion: false)
+        #expect(l.undo!.maxX < l.geometry.thumbnails[0].minX)
+    }
+
+    @Test func cornerButtonLowersTheShelf() {
+        let l = PaletteLayout(base: base, style: .cornerButton, showsUndo: true, showsVersion: false)
+        #expect(l.shelf.minY == 14)
+        #expect(l.undo!.minY == 0)
+        #expect(l.geometry.thumbnails[0].minY == base.thumbnails[0].minY + 14)
+        #expect(l.shapes.count == 2)
+    }
+
+    @Test func sideBubbleIsOutsideTheShelf() {
+        let l = PaletteLayout(base: base, style: .sideBubble, showsUndo: true, showsVersion: true)
+        #expect(l.undo!.minX > l.shelf.maxX)
+        #expect(l.shapes.count == 3)
+        #expect(l.geometry.size.width > l.shelf.width)
+    }
+
+    @Test func hangingLipHangsBelow() {
+        let l = PaletteLayout(base: base, style: .hangingLip, showsUndo: true, showsVersion: true)
+        #expect(l.shapes.first!.rect.maxY > l.shelf.maxY)
+        #expect(l.version!.rect.minY > l.shelf.maxY)
+    }
+
+    @Test func everyStyleKeepsItsPiecesInTheBox() {
+        for style in UndoTargetStyle.allCases {
+            let l = PaletteLayout(base: base, style: style, showsUndo: true, showsVersion: true)
+            let box = CGRect(origin: .zero, size: l.geometry.size)
+            for shape in l.shapes { #expect(box.insetBy(dx: -0.5, dy: -0.5).contains(shape.rect), "\(style)") }
+            if let undo = l.undo { #expect(box.insetBy(dx: -0.5, dy: -0.5).contains(undo), "\(style)") }
+            for t in l.geometry.thumbnails { #expect(l.shelf.contains(t), "\(style)") }
+        }
+    }
+}

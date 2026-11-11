@@ -22,6 +22,7 @@ One name per idea, in every button, menu, title, tooltip, Help page and error.
 | Gap | Space between snapped windows. | padding, gutter |
 | Margin | Space between snapped windows and the display's edges. | inset, border |
 | Undo Move | Put the last window GridLock moved back where it was. | revert, restore |
+| Undo target | The place on the palette to drop a window to undo GridLock's last move of it. Shows only for windows GridLock has moved; its look is chosen in Settings › Palette. | undo button, trash, undo zone |
 | Custom Layout | A layout the user draws in the layout editor. | user pattern |
 | Arrangement | (Milestone 2) Several apps' windows snapped into zones at once, saved per desk. | workspace, scene |
 | Access | The macOS permission GridLock needs to move other apps' windows. On macOS 27 it is listed under Privacy & Security › Device Control and Data Access. | accessibility permission (except when quoting older macOS) |

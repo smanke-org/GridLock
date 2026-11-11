@@ -32,6 +32,12 @@ final class PaletteOverlay {
     private let previewView = DropPreviewView()
     private lazy var clickContainer = PaletteContainer(model: model, clicks: true)
     private let model = PaletteModel()
+    private lazy var dragFrame = PaletteFrame(content: PaletteContainer(model: model))
+    private lazy var clickFrame = PaletteFrame(content: clickContainer)
+    /// The window being placed, and where GridLock's newest move of it started (what the
+    /// undo target puts it back to).
+    private var window: TargetWindow?
+    private var undoFrom: CGRect?
     private var display: LiveDisplay?
     /// The palette's frame, global top-left.
     private var frame = CGRect.zero
@@ -49,8 +55,8 @@ final class PaletteOverlay {
     }
 
     init() {
-        panel.contentView = RevealView(child: PaletteFrame(content: PaletteContainer(model: model)))
-        clickPanel.contentView = RevealView(child: PaletteFrame(content: clickContainer))
+        panel.contentView = RevealView(child: dragFrame)
+        clickPanel.contentView = RevealView(child: clickFrame)
         clickPanel.acceptsMouseMovedEvents = true
         preview.contentView = previewView
         // Under the palette, over the dragged window.
@@ -58,16 +64,16 @@ final class PaletteOverlay {
     }
 
     /// Opens on a display, centered under the cursor (a drag at the top edge).
-    func open(on display: LiveDisplay, cursorX: CGFloat) {
-        present(on: display, trigger: .edge) { geometry in
+    func open(on display: LiveDisplay, cursorX: CGFloat, window: TargetWindow?) {
+        present(on: display, trigger: .edge, window: window) { geometry in
             geometry.frame(under: cursorX, bounds: display.bounds, visible: display.visible)
         }
     }
 
     /// Slides the palette out of its tab: down from under the menu bar, its bottom edge
     /// starting where the tab's is.
-    func openFromTab(on display: LiveDisplay) {
-        present(on: display, trigger: .edge, fromTab: true) {
+    func openFromTab(on display: LiveDisplay, window: TargetWindow?) {
+        present(on: display, trigger: .edge, window: window, fromTab: true) {
             $0.frame(hangingFrom: display.visible, centerX: display.bounds.midX, bounds: display.bounds)
         }
     }
@@ -79,9 +85,18 @@ final class PaletteOverlay {
         return PaletteGeometry(count: max(count, 1), aspect: aspect, maxWidth: min(display.bounds.width - 40, 900))
     }
 
+    /// The whole palette for a display: its layouts with the undo target (when the window has
+    /// a move to undo) and the version, as Settings › Palette asks. The tab uses it too, so
+    /// it's the palette's own edge.
+    static func layout(for display: LiveDisplay, count: Int, undo: Bool) -> PaletteLayout {
+        let settings = AppSettings.shared
+        return PaletteLayout(base: geometry(for: display, count: count), style: settings.undoTargetStyle,
+                             showsUndo: undo, showsVersion: settings.showsPaletteVersion)
+    }
+
     /// Opens next to the cursor (the drag keys were held mid-drag).
-    func open(on display: LiveDisplay, near cursor: CGPoint) {
-        present(on: display, trigger: .modifier) { $0.frame(near: cursor, visible: display.visible) }
+    func open(on display: LiveDisplay, near cursor: CGPoint, window: TargetWindow?) {
+        present(on: display, trigger: .modifier, window: window) { $0.frame(near: cursor, visible: display.visible) }
     }
 
     /// The Open Palette shortcut: closes the palette if it's already open that way, else
@@ -97,14 +112,14 @@ final class PaletteOverlay {
         GridOverlay.shared.close(returningFocus: false)
         let mouse = Self.cursor
         let x = display.bounds.contains(mouse) ? mouse.x : display.bounds.midX
-        present(on: display, trigger: .shortcut(window)) {
+        present(on: display, trigger: .shortcut(window), window: window) {
             $0.frame(under: x, bounds: display.bounds, visible: display.visible)
         }
         watchForDismissal(of: window)
         _ = track(mouse)
     }
 
-    private func present(on display: LiveDisplay, trigger: Trigger, fromTab: Bool = false,
+    private func present(on display: LiveDisplay, trigger: Trigger, window: TargetWindow?, fromTab: Bool = false,
                          frameFor: (PaletteGeometry) -> CGRect) {
         let settings = Actions.shared.desks.settings(for: display)
         let custom = Actions.shared.desks.store.library.customLayouts
@@ -114,10 +129,17 @@ final class PaletteOverlay {
         model.kinds = kinds
         model.custom = custom
         model.highlight = nil
+        model.undoHot = false
         // An empty palette still opens, with one way to fill it.
         zones = kinds.isEmpty ? [[.full]] : kinds.map { $0.zones(custom: custom) }
-        model.geometry = Self.geometry(for: display, count: zones.count)
+        self.window = window
+        let move = window.flatMap { WindowMover.shared.lastMove(of: $0.element) }
+        undoFrom = move?.from
+        model.undoApp = move?.appName ?? ""
+        model.undoPreview = move.map { unit(of: $0.from, fallback: display) }
+        model.layout = Self.layout(for: display, count: zones.count, undo: move != nil)
         frame = frameFor(model.geometry)
+        (trigger.isShortcut ? clickFrame : dragFrame).shapes = model.layout.shapes
         let panel = activePanel
         // The window is a little bigger than the palette, for its shadow; hanging from the
         // menu bar (out of the tab) it stops at the menu bar, which hides what's above.
@@ -175,9 +197,23 @@ final class PaletteOverlay {
             return false
         }
         let local = CGPoint(x: cursor.x - frame.minX, y: cursor.y - frame.minY)
+        if model.layout.isOnUndo(local) {
+            guard !model.undoHot else { return true }
+            model.undoHot = true
+            model.highlight = nil
+            // The outline shows where the window goes back to.
+            if let undoFrom {
+                preview.cover(undoFrom)
+                previewView.size = undoFrom.size
+                if !preview.isVisible { preview.appear() }
+            }
+            return true
+        }
+        let leftUndo = model.undoHot
+        model.undoHot = false
         let hit = model.geometry.hit(local, zones: zones)
         let changed = hit?.entry != model.highlight?.entry || hit?.zone != model.highlight?.zone
-        guard changed else { return true }
+        guard changed || leftUndo else { return true }
         model.highlight = hit.map { PaletteModel.Highlight(entry: $0.entry, zone: $0.zone) }
         if let target = hit.flatMap({ targetFrame(for: $0) }) {
             preview.cover(target)
@@ -196,9 +232,13 @@ final class PaletteOverlay {
 
     /// The zone under the cursor, if any, with its display — what a release snaps to.
     var choice: (zone: UnitRect, display: LiveDisplay)? {
-        guard isShowing, let display, let h = model.highlight, !model.kinds.isEmpty else { return nil }
+        guard isShowing, let display, !model.undoHot, let h = model.highlight, !model.kinds.isEmpty else { return nil }
         return (zones[h.entry][h.zone], display)
     }
+
+    /// Whether the cursor is on the undo target: letting go there undoes GridLock's newest
+    /// move of the window.
+    var isOnUndo: Bool { isShowing && model.undoHot }
 
     /// Whether the cursor is on the "Edit Palette…" tile of an empty palette.
     var isOnEditTile: Bool { isShowing && model.kinds.isEmpty && model.highlight != nil }
@@ -207,7 +247,11 @@ final class PaletteOverlay {
     func clicked() {
         guard case .shortcut(let window) = trigger else { return }
         _ = track(Self.cursor)
-        if let choice {
+        if isOnUndo {
+            close()
+            WindowMover.shared.undo(window.element)
+            Diagnostics.note("palette: undid the move of \(window.appName) by click")
+        } else if let choice {
             close()
             Actions.shared.snap(window, to: choice.zone, on: choice.display)
             Diagnostics.note("palette: snapped \(window.appName) on \(choice.display.name) by click")
@@ -226,6 +270,7 @@ final class PaletteOverlay {
         activePanel.disappear()
         preview.disappear()
         model.highlight = nil
+        model.undoHot = false
         if case .shortcut(let window) = trigger {
             for monitor in monitors { NSEvent.removeMonitor(monitor) }
             monitors = []
@@ -269,6 +314,16 @@ final class PaletteOverlay {
         return CGPoint(x: p.x, y: DisplayCatalog.mainHeight - p.y)
     }
 
+    /// Where a frame sits on its display, as a share of the display's usable area (what the
+    /// Preview Tile draws).
+    private func unit(of frame: CGRect, fallback: LiveDisplay) -> UnitRect {
+        let v = (Actions.shared.desks.display(holding: frame) ?? fallback).visible
+        func clamp(_ x: Double) -> Double { min(max(x, 0), 1) }
+        let x = clamp((frame.minX - v.minX) / max(v.width, 1)), y = clamp((frame.minY - v.minY) / max(v.height, 1))
+        return UnitRect(x: x, y: y, width: clamp((frame.maxX - v.minX) / max(v.width, 1)) - x,
+                        height: clamp((frame.maxY - v.minY) / max(v.height, 1)) - y)
+    }
+
     private func targetFrame(for hit: (entry: Int, zone: Int)) -> CGRect? {
         guard let display, !model.kinds.isEmpty else { return nil }
         let grid = Actions.shared.desks.settings(for: display).grid
@@ -278,12 +333,18 @@ final class PaletteOverlay {
     /// For the debug hook.
     func dump() -> String {
         guard isShowing else { return "palette: closed" }
+        if model.undoHot { return "palette (\(trigger.name)): \(display?.name ?? "") \(frame) layouts=\(model.kinds.count) over the undo target (\(model.layout.style.rawValue))" }
         let h = model.highlight.map { "\(model.kinds.isEmpty ? "Edit Palette…" : model.kinds[$0.entry].title(custom: model.custom)) zone \($0.zone + 1)" }
-        return "palette (\(trigger.name)): \(display?.name ?? "") \(frame) layouts=\(model.kinds.count) over \(h ?? "nothing")"
+        return "palette (\(trigger.name)): \(display?.name ?? "") \(frame) layouts=\(model.kinds.count) undo=\(model.layout.undo.map { "\($0)" } ?? "none") over \(h ?? "nothing")"
     }
 }
 
 extension PaletteOverlay.Trigger {
+    var isShortcut: Bool {
+        if case .shortcut = self { return true }
+        return false
+    }
+
     var name: String {
         switch self {
         case .edge: "top edge"
@@ -303,19 +364,36 @@ final class PaletteModel {
 
     var kinds: [LayoutKind] = []
     var custom: [CustomLayout] = []
-    var geometry = PaletteGeometry(count: 0, aspect: 1.6, maxWidth: 800)
+    var layout = PaletteLayout(base: PaletteGeometry(count: 0, aspect: 1.6, maxWidth: 800), style: .none, showsUndo: false, showsVersion: false)
     var highlight: Highlight?
+    /// A window is over the undo target.
+    var undoHot = false
+    /// The app whose window the undo target would put back.
+    var undoApp = ""
+    /// Where it goes back to on its display, for the Preview Tile.
+    var undoPreview: UnitRect?
+    var versionText = "\(AppInfo.name) \(AppInfo.version)"
+
+    /// The layouts, placed on the shelf.
+    var geometry: PaletteGeometry { layout.geometry }
 }
 
 /// The palette's content: thumbnails at the frames `PaletteGeometry` gives, captions
-/// under them.
+/// under them, and the undo target, its dividers and the version where `PaletteLayout`
+/// puts them. The glass under all of it is `PaletteFrame`'s.
 struct PaletteView: View {
     let model: PaletteModel
 
     var body: some View {
         let g = model.geometry
+        let layout = model.layout
         ZStack(alignment: .topLeading) {
             Color.clear
+            ForEach(Array(layout.dividers.enumerated()), id: \.offset) { _, rect in
+                Rectangle().fill(.primary.opacity(0.18))
+                    .frame(width: rect.width, height: rect.height)
+                    .offset(x: rect.minX, y: rect.minY)
+            }
             if model.kinds.isEmpty, let rect = g.thumbnails.first {
                 editTile(rect)
             }
@@ -329,6 +407,23 @@ struct PaletteView: View {
                     caption(kind.title(custom: model.custom), under: rect)
                 }
             }
+            if let undo = layout.undo {
+                UndoTarget(style: layout.style, hot: model.undoHot, app: model.undoApp, preview: model.undoPreview)
+                    .frame(width: undo.width, height: undo.height)
+                    .offset(x: undo.minX, y: undo.minY)
+                if let rect = layout.caption, let words = layout.style.caption {
+                    Text(model.undoHot ? layout.style.hotCaption(app: model.undoApp) : words)
+                        .font(.caption)
+                        .foregroundStyle(model.undoHot ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(width: rect.width, height: rect.height)
+                        .offset(x: rect.minX, y: rect.minY)
+                }
+            }
+            if let version = layout.version {
+                versionText(version)
+            }
         }
         .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
     }
@@ -340,6 +435,28 @@ struct PaletteView: View {
             .truncationMode(.middle)
             .frame(width: rect.width + PaletteGeometry.spacing - 2)
             .offset(x: rect.minX - PaletteGeometry.spacing / 2 + 1, y: rect.maxY + 2)
+    }
+
+    @ViewBuilder
+    private func versionText(_ version: PaletteLayout.Version) -> some View {
+        let r = version.rect
+        let text = Text(model.versionText)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .accessibilityLabel(model.versionText)
+        switch version.spot {
+        case .vertical:
+            // Reads bottom to top, up the shelf's left edge.
+            text.fixedSize()
+                .rotationEffect(.degrees(-90))
+                .frame(width: r.width, height: r.height)
+                .offset(x: r.minX, y: r.minY)
+        default:
+            let alignment: Alignment = version.spot == .leading ? .leading : version.spot == .center ? .center : .trailing
+            text.frame(width: r.width, height: r.height, alignment: alignment)
+                .offset(x: r.minX, y: r.minY)
+        }
     }
 
     private func editTile(_ rect: CGRect) -> some View {
@@ -355,12 +472,10 @@ struct PaletteView: View {
     }
 }
 
-/// The palette on Liquid Glass: AppKit's glass behind the SwiftUI thumbnails. Opened by
-/// the shortcut it also takes the mouse and keys itself: hovering previews a zone, a click
-/// snaps, Esc closes.
+/// The palette's content over `PaletteFrame`'s glass. Opened by the shortcut it also takes
+/// the mouse and keys itself: hovering previews a zone, a click snaps, Esc closes.
 @MainActor
 final class PaletteContainer: NSView {
-    private let glass = NSGlassEffectView()
     private let host: NSHostingView<PaletteView>
     private let clicks: Bool
 
@@ -369,8 +484,6 @@ final class PaletteContainer: NSView {
         host.sizingOptions = []
         self.clicks = clicks
         super.init(frame: .zero)
-        glass.cornerRadius = 22
-        addSubview(glass)
         addSubview(host)
         if clicks {
             addTrackingArea(NSTrackingArea(rect: .zero, options: [.activeAlways, .mouseMoved, .inVisibleRect], owner: self))
@@ -381,7 +494,6 @@ final class PaletteContainer: NSView {
 
     override func layout() {
         super.layout()
-        glass.frame = bounds
         host.frame = bounds
     }
 
@@ -455,84 +567,112 @@ final class RevealView: NSView {
     }
 }
 
-/// The palette's glass with nothing on it: the tab.
-@MainActor
-final class GlassFill: NSView {
-    private let glass = NSGlassEffectView()
-
-    override init(frame: NSRect) {
-        super.init(frame: frame)
-        glass.cornerRadius = 22
-        addSubview(glass)
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func layout() {
-        super.layout()
-        glass.frame = bounds
-    }
-}
-
-/// The palette with its frame: a black keyline around the glass and a tight shadow under
-/// it, so it stands apart from whatever window is behind. The shadow is drawn only outside
-/// the palette, so none of it shows through the glass, and the window around the palette is
-/// `margin` bigger on every side to hold it.
+/// The palette with its frame: Liquid Glass for each of `shapes` (the shelf, and the bubble,
+/// button or lip some undo target styles add), each with a black keyline, and one tight
+/// shadow under them all, so the palette stands apart from whatever window is behind. The
+/// shadow is drawn only outside the glass, so none of it shows through, and the window around
+/// the palette is `margin` bigger on every side to hold it. With a plain `NSView` for content
+/// it's the glass with nothing on it: the tab.
 @MainActor
 final class PaletteFrame: NSView {
     static let margin: CGFloat = 12
-    private static let radius: CGFloat = 22
-    private static let keyline: CGFloat = 1.5
+    fileprivate static let keyline: CGFloat = 1.5
 
-    private let content: NSView
-    private let line = Keyline()
+    /// The glass, palette-local (without the margin), back to front. Empty: one shelf
+    /// filling the palette.
+    var shapes: [PaletteShape] = [] {
+        didSet {
+            guard shapes != oldValue else { return }
+            rebuild()
+        }
+    }
+
+    private var content: NSView
+    private var pieces: [(glass: NSGlassEffectView, line: Keyline)] = []
 
     init(content: NSView) {
         self.content = content
         super.init(frame: .zero)
         addSubview(content)
-        addSubview(line)
+        rebuild()
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Puts other content on the glass (Settings' preview, when the choice changes).
+    func replaceContent(_ view: NSView) {
+        content.removeFromSuperview()
+        content = view
+        addSubview(view)
+        needsLayout = true
+    }
 
     override var isFlipped: Bool { true }
 
     private var palette: CGRect { bounds.insetBy(dx: Self.margin, dy: Self.margin) }
 
+    /// The shapes in this view's space.
+    private var placed: [PaletteShape] {
+        guard !shapes.isEmpty else { return [PaletteShape(rect: palette, radius: PaletteLayout.radius)] }
+        return shapes.map { PaletteShape(rect: $0.rect.offsetBy(dx: Self.margin, dy: Self.margin), radius: $0.radius) }
+    }
+
+    private func rebuild() {
+        let count = max(shapes.count, 1)
+        if pieces.count != count {
+            for piece in pieces { piece.glass.removeFromSuperview(); piece.line.removeFromSuperview() }
+            pieces = (0..<count).map { _ in (NSGlassEffectView(), Keyline()) }
+            // Each piece's glass and keyline together, so a piece in front covers the one behind.
+            for piece in pieces {
+                addSubview(piece.glass, positioned: .below, relativeTo: content)
+                addSubview(piece.line, positioned: .below, relativeTo: content)
+            }
+        }
+        needsLayout = true
+        needsDisplay = true
+    }
+
     override func layout() {
         super.layout()
         content.frame = palette
-        line.frame = bounds
+        for (piece, shape) in zip(pieces, placed) {
+            piece.glass.cornerRadius = shape.radius
+            piece.glass.frame = shape.rect
+            piece.line.radius = shape.radius
+            piece.line.frame = shape.rect
+        }
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let shape = NSBezierPath(roundedRect: palette, xRadius: Self.radius, yRadius: Self.radius)
-        NSGraphicsContext.saveGraphicsState()
-        let outside = NSBezierPath(rect: bounds)
-        outside.append(shape)
-        outside.windingRule = .evenOdd
-        outside.addClip()
+        guard let context = NSGraphicsContext.current else { return }
+        let paths = placed.map { NSBezierPath(roundedRect: $0.rect, xRadius: $0.radius, yRadius: $0.radius) }
+        context.saveGraphicsState()
         let shadow = NSShadow()
         shadow.shadowColor = NSColor.black.withAlphaComponent(0.35)
         shadow.shadowBlurRadius = 6
         // Unflipped space: negative height is down.
         shadow.shadowOffset = NSSize(width: 0, height: -3)
+        context.cgContext.beginTransparencyLayer(auxiliaryInfo: nil)
         shadow.set()
         NSColor.black.setFill()
-        shape.fill()
-        NSGraphicsContext.restoreGraphicsState()
+        for path in paths { path.fill() }
+        context.cgContext.endTransparencyLayer()
+        // Then the shapes themselves cleared again, leaving the shadow only outside them.
+        context.compositingOperation = .clear
+        for path in paths { path.fill() }
+        context.restoreGraphicsState()
     }
 
-    /// The keyline, over the glass's edge. Takes no clicks.
+    /// One piece's keyline, over its glass's edge. Takes no clicks.
     private final class Keyline: NSView {
+        var radius: CGFloat = PaletteLayout.radius { didSet { needsDisplay = true } }
+
         override var isFlipped: Bool { true }
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
         override func draw(_ dirtyRect: NSRect) {
             let w = PaletteFrame.keyline
-            let r = bounds.insetBy(dx: PaletteFrame.margin + w / 2, dy: PaletteFrame.margin + w / 2)
-            let path = NSBezierPath(roundedRect: r, xRadius: PaletteFrame.radius - w / 2, yRadius: PaletteFrame.radius - w / 2)
+            let path = NSBezierPath(roundedRect: bounds.insetBy(dx: w / 2, dy: w / 2), xRadius: radius - w / 2, yRadius: radius - w / 2)
             path.lineWidth = w
             NSColor.black.setStroke()
             path.stroke()

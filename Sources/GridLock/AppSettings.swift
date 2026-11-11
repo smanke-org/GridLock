@@ -1,4 +1,5 @@
 import AppKit
+import GridLockKit
 import Observation
 
 /// App-wide preferences (UserDefaults). Per-desk and per-display settings are not here:
@@ -24,6 +25,8 @@ final class AppSettings {
         static let shortcuts = "shortcuts"
         static let paletteModifiers = "paletteModifiers"
         static let paletteTab = "paletteTab"
+        static let undoTarget = "paletteUndoTarget"
+        static let paletteVersion = "paletteVersion"
     }
 
     /// The keys that may be held to open the palette mid-drag.
@@ -64,6 +67,16 @@ final class AppSettings {
         didSet { defaults.set(showsPaletteTab, forKey: Key.paletteTab) }
     }
 
+    /// How every palette shows its undo target (Settings › Palette).
+    var undoTargetStyle: UndoTargetStyle {
+        didSet { defaults.set(undoTargetStyle.rawValue, forKey: Key.undoTarget) }
+    }
+
+    /// GridLock's name and version in small type on the palette (Settings › Palette).
+    var showsPaletteVersion: Bool {
+        didSet { defaults.set(showsPaletteVersion, forKey: Key.paletteVersion) }
+    }
+
     /// Shortcut id → key. A missing id means "the default"; an id stored as null means the
     /// user cleared it.
     private var shortcuts: [String: HotKey?]
@@ -75,6 +88,8 @@ final class AppSettings {
         shortcuts = Self.loadShortcuts(from: defaults)
         paletteModifiers = Self.loadPaletteModifiers(from: defaults)
         showsPaletteTab = defaults.object(forKey: Key.paletteTab) as? Bool ?? true
+        undoTargetStyle = Self.loadUndoTarget(from: defaults)
+        showsPaletteVersion = defaults.object(forKey: Key.paletteVersion) as? Bool ?? true
     }
 
     func shortcut(_ id: String) -> HotKey? {
@@ -98,6 +113,12 @@ final class AppSettings {
         shortcuts = Self.loadShortcuts(from: defaults)
         paletteModifiers = Self.loadPaletteModifiers(from: defaults)
         showsPaletteTab = defaults.object(forKey: Key.paletteTab) as? Bool ?? true
+        undoTargetStyle = Self.loadUndoTarget(from: defaults)
+        showsPaletteVersion = defaults.object(forKey: Key.paletteVersion) as? Bool ?? true
+    }
+
+    private static func loadUndoTarget(from defaults: UserDefaults) -> UndoTargetStyle {
+        defaults.string(forKey: Key.undoTarget).flatMap(UndoTargetStyle.init(rawValue:)) ?? .standard
     }
 
     /// ⌘ unless the user chose otherwise.

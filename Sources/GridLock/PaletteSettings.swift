@@ -6,6 +6,7 @@ import SwiftUI
 struct PaletteSettings: View {
     let desks: DeskTracker
     @Bindable private var selection = DeskSelection.shared
+    @Bindable private var settings = AppSettings.shared
 
     var body: some View {
         Form {
@@ -36,6 +37,27 @@ struct PaletteSettings: View {
                 }
             } else {
                 Text("Recognizing your displays…").foregroundStyle(.secondary)
+            }
+            Section("Every Palette") {
+                Picker("Undo target", selection: $settings.undoTargetStyle) {
+                    ForEach(UndoTargetStyle.allCases, id: \.self) { style in
+                        Text(style.title).tag(style)
+                        if style == .none { Divider() }
+                    }
+                }
+                Toggle("Show name and version", isOn: $settings.showsPaletteVersion)
+                VStack(spacing: 14) {
+                    UndoTargetPreview(style: settings.undoTargetStyle, showsVersion: settings.showsPaletteVersion, hot: false,
+                                      label: "As it opens")
+                    if settings.undoTargetStyle != .none {
+                        UndoTargetPreview(style: settings.undoTargetStyle, showsVersion: settings.showsPaletteVersion, hot: true,
+                                          label: "With a window over the target")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                Caption(settings.undoTargetStyle == .none
+                        ? "No undo target. Undo Move is still in the menu bar menu and on its shortcut."
+                        : "Drop a window on the undo target to put it back where it was before GridLock last moved it. The target shows only for windows GridLock has moved.")
             }
         }
         .formStyle(.grouped)
@@ -287,5 +309,56 @@ private struct PalettePreview: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Palette preview")
         }
+    }
+}
+
+/// A small palette with the chosen undo target, drawn by the real palette's own views: three
+/// layouts on glass, at rest or with a window over the target.
+private struct UndoTargetPreview: View {
+    let style: UndoTargetStyle
+    let showsVersion: Bool
+    let hot: Bool
+    let label: String
+
+    private var model: PaletteModel {
+        let model = PaletteModel()
+        model.kinds = [.columns(count: 2), .columns(count: 3), .grid(columns: 2, rows: 2)]
+        model.layout = PaletteLayout(base: PaletteGeometry(count: 3, aspect: 1.6, maxWidth: 900),
+                                     style: style, showsUndo: true, showsVersion: showsVersion)
+        model.undoHot = hot
+        model.undoApp = "Safari"
+        model.undoPreview = UnitRect(x: 0.1, y: 0.1, width: 0.55, height: 0.62)
+        return model
+    }
+
+    var body: some View {
+        let model = model
+        let size = model.geometry.size
+        let m = PaletteFrame.margin
+        // At its real size, so the type reads as it will on the display.
+        VStack(spacing: 2) {
+            PaletteGlass(model: model)
+                .frame(width: size.width + 2 * m, height: size.height + 2 * m)
+            Text(label).font(.caption).foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Palette preview, \(label.lowercased())")
+    }
+}
+
+/// The real palette, glass and all, in a SwiftUI view.
+private struct PaletteGlass: NSViewRepresentable {
+    let model: PaletteModel
+
+    func makeNSView(context: Context) -> PaletteFrame {
+        let frame = PaletteFrame(content: PaletteContainer(model: model))
+        frame.shapes = model.layout.shapes
+        return frame
+    }
+
+    func updateNSView(_ view: PaletteFrame, context: Context) {
+        // A new model each time the choice changes: start over.
+        view.replaceContent(PaletteContainer(model: model))
+        view.shapes = model.layout.shapes
     }
 }

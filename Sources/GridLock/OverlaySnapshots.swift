@@ -7,6 +7,7 @@ import GridLockKit
 @MainActor
 enum OverlaySnapshots {
     static let pages = ["overlay-grid", "overlay-grid-selecting", "palette", "palette-hover", "palette-tab"]
+        + UndoTargetStyle.allCases.filter { $0 != .none }.flatMap { ["undo-\($0.rawValue)", "undo-\($0.rawValue)-hover"] }
 
     /// A 1440 × 900 display with a menu bar and a Dock, in its own top-left space.
     static let bounds = CGRect(x: 0, y: 0, width: 1440, height: 900)
@@ -22,7 +23,12 @@ enum OverlaySnapshots {
         let window = self.window ?? NSWindow(contentRect: bounds, styleMask: [.borderless], backing: .buffered, defer: false)
         self.window = window
         window.isReleasedWhenClosed = false
-        let palette = page == "palette" || page == "palette-hover"
+        // `undo-<style>` and `undo-<style>-hover`: the palette with that undo target, at rest or
+        // with a window over it.
+        let undoName = page.hasPrefix("undo-") ? String(page.dropFirst(5)).replacingOccurrences(of: "-hover", with: "") : nil
+        let undoStyle = undoName.flatMap(UndoTargetStyle.init(rawValue:))
+        let hot = undoStyle != nil && page.hasSuffix("-hover")
+        let palette = page == "palette" || page == "palette-hover" || undoStyle != nil
         // For the palette, the window is being dragged at the top of the display; for the
         // tab, partway down it.
         let canvas = FakeDesktop(frame: bounds, window: palette ? draggedFrame
@@ -43,11 +49,27 @@ enum OverlaySnapshots {
             state.showsHint = true
             view.state = state
             canvas.addSubview(view)
-        case "palette", "palette-hover":
+        case _ where palette:
             let model = PaletteModel()
             model.kinds = Palette.suggested(for: grid).map(\.kind)
-            model.geometry = PaletteGeometry(count: model.kinds.count, aspect: visible.width / visible.height, maxWidth: 900)
+            model.layout = PaletteLayout(base: PaletteGeometry(count: model.kinds.count, aspect: visible.width / visible.height, maxWidth: 900),
+                                         style: undoStyle ?? AppSettings.shared.undoTargetStyle, showsUndo: undoStyle != nil,
+                                         showsVersion: AppSettings.shared.showsPaletteVersion)
             let frame = model.geometry.frame(under: cursor.x, bounds: bounds, visible: visible)
+            // The bare debug binary has no Info.plist to read a version from.
+            model.versionText = "GridLock 1.0.7"
+            if hot {
+                // A window over the undo target: the outline shows where it goes back to.
+                model.undoHot = true
+                model.undoApp = "Safari"
+                model.undoPreview = UnitRect(x: (windowFrame.minX - visible.minX) / visible.width, y: (windowFrame.minY - visible.minY) / visible.height,
+                                             width: windowFrame.width / visible.width, height: windowFrame.height / visible.height)
+                let preview = DropPreviewView(frame: windowFrame)
+                preview.size = windowFrame.size
+                canvas.addSubview(preview)
+            } else if undoStyle != nil {
+                model.undoPreview = UnitRect(x: 0.1, y: 0.1, width: 0.55, height: 0.62)
+            }
             if page == "palette-hover" {
                 // The cursor over the right zone of the first layout (Halves).
                 let zone = model.kinds[1].zones()[2]
@@ -58,15 +80,19 @@ enum OverlaySnapshots {
                 canvas.addSubview(preview)
             }
             let framed = PaletteFrame(content: PaletteContainer(model: model))
+            framed.shapes = model.layout.shapes
             framed.frame = frame.insetBy(dx: -PaletteFrame.margin, dy: -PaletteFrame.margin)
             canvas.addSubview(framed)
         case "palette-tab":
             let count = Palette.suggested(for: grid).count
             let aspect = visible.width / visible.height
-            let palette = PaletteGeometry(count: count, aspect: aspect, maxWidth: 900)
-                .frame(hangingFrom: visible, centerX: bounds.midX, bounds: bounds)
+            let layout = PaletteLayout(base: PaletteGeometry(count: count, aspect: aspect, maxWidth: 900),
+                                       style: AppSettings.shared.undoTargetStyle, showsUndo: true, showsVersion: AppSettings.shared.showsPaletteVersion)
+            let palette = layout.geometry.frame(hangingFrom: visible, centerX: bounds.midX, bounds: bounds)
             let m = PaletteFrame.margin
-            let reveal = RevealView(child: PaletteFrame(content: GlassFill()))
+            let glass = PaletteFrame(content: NSView())
+            glass.shapes = layout.shapes
+            let reveal = RevealView(child: glass)
             reveal.frame = CGRect(x: palette.minX - m, y: visible.minY, width: palette.width + 2 * m, height: PaletteTab.height + m)
             reveal.topCut = m
             reveal.childHeight = palette.height + 2 * m

@@ -25,6 +25,12 @@ public struct MoveHistory<Item> {
         items.last(where: usable)
     }
 
+    /// Takes out the newest item that matches (one window's latest move), leaving the rest.
+    public mutating func removeLast(where match: (Item) -> Bool) -> Item? {
+        guard let i = items.lastIndex(where: match) else { return nil }
+        return items.remove(at: i)
+    }
+
     public var isEmpty: Bool { items.isEmpty }
 }
 

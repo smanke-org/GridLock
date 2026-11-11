@@ -67,6 +67,21 @@ final class WindowMover {
         return true
     }
 
+    /// GridLock's newest move of this window, if it's still open: the app's name and where
+    /// the window was before. The palette shows its undo target only when there is one.
+    func lastMove(of element: AXUIElement) -> (appName: String, from: CGRect)? {
+        history.last { CFEqual($0.element, element) && isOpen($0) }.map { ($0.appName, $0.from) }
+    }
+
+    /// Puts this window back where it was before GridLock's newest move of it, even when
+    /// other windows moved since (a window dropped on the palette's undo target).
+    @discardableResult
+    func undo(_ element: AXUIElement) -> Bool {
+        guard let move = history.removeLast(where: { CFEqual($0.element, element) }), isOpen(move) else { return false }
+        place(move.element, pid: move.pid, frame: move.from, label: "undo \(move.appName)")
+        return true
+    }
+
     private func isOpen(_ move: Move) -> Bool {
         AXWindows.frame(of: move.element) != nil
     }

@@ -11,7 +11,8 @@ final class PaletteTabOverlay {
     static let shared = PaletteTabOverlay()
 
     private let panel = OverlayPanel(takesKeys: false, clickThrough: true)
-    private let reveal = RevealView(child: PaletteFrame(content: GlassFill()))
+    private let glass = PaletteFrame(content: NSView())
+    private lazy var reveal = RevealView(child: glass)
     private(set) var display: LiveDisplay?
     /// The tab's frame (the visible edge), global top-left.
     private(set) var frame = CGRect.zero
@@ -22,11 +23,14 @@ final class PaletteTabOverlay {
         panel.contentView = reveal
     }
 
-    /// Shows the tab on a display, or moves it there.
-    func show(on display: LiveDisplay) {
+    /// Shows the tab on a display, or moves it there. `undo`: the dragged window has a move
+    /// to undo, so the palette it slides into has the undo target.
+    func show(on display: LiveDisplay, undo: Bool) {
         guard display.key != self.display?.key else { return }
         let count = Actions.shared.desks.settings(for: display).palette.count
-        let palette = PaletteOverlay.geometry(for: display, count: count)
+        let layout = PaletteOverlay.layout(for: display, count: count, undo: undo)
+        glass.shapes = layout.shapes
+        let palette = layout.geometry
             .frame(hangingFrom: display.visible, centerX: display.bounds.midX, bounds: display.bounds)
         frame = PaletteTab.frame(palette: palette, visible: display.visible)
         // The window shows the edge plus room for the shadow at the sides and below; the

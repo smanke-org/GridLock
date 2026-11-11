@@ -21,6 +21,7 @@ Requires macOS 26 or later. Free.
 - **The palette.** Drag a window by its title bar to the top edge of a display. Each layout in the palette is split into zones; drag over one to preview where the window goes, and let go to snap it.
 - **No top edge needed.** Hold ⌘ (or any keys you choose) while dragging and the palette opens right away, next to the pointer, so Mission Control never gets in the way. Or press ⌃⌥P to open the palette for the frontmost window and click a zone.
 - **Show Grid.** Press ⌃⌥G to see the frontmost window's cells on a grid. Drag across cells or use the arrow keys (⇧ grows, ⌥⇧ shrinks), then let go or press Return.
+- **Undo by dropping.** Drag a window GridLock moved back to the palette and drop it on the undo target: it goes back where it was before. Pick from ten looks for the target (or none) in Settings › Palette.
 - **Per desk, per display.** Each display at each desk keeps its own grid (columns, rows, gap, margin) and its own palette. A new desk starts from the most similar one GridLock knows.
 - **Your palette.** Choose which layouts appear and in what order: halves, columns, rows, grids, splits, maximize, center, each family with its own count, plus custom layouts you draw yourself.
 - **Shortcuts for everything.** Every zone can have a shortcut; pressing a half's shortcut again steps through two-thirds and a third. Move a window to the next display and keep its share of the grid.

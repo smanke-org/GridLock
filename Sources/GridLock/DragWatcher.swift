@@ -30,6 +30,15 @@ final class DragWatcher {
     private var dragging: TargetWindow?
     private var dwell = EdgeDwell()
     private var dwellTimer: Timer?
+    /// Whether the dragged window has a move to undo (so the tab is as big as the palette
+    /// with its undo target), asked once per drag.
+    private var undoAnswer: Bool?
+    private var draggedHasUndo: Bool {
+        if let undoAnswer { return undoAnswer }
+        let answer = dragging.flatMap { WindowMover.shared.lastMove(of: $0.element) } != nil
+        undoAnswer = answer
+        return answer
+    }
     /// Esc closed the palette: it stays closed for the rest of this drag.
     private var dismissed = false
     /// Looks at the Esc key while the palette is open: a global key monitor didn't always
@@ -127,20 +136,20 @@ final class DragWatcher {
             dwellTimer?.invalidate()
             dwellTimer = nil
             tab.close()
-            palette.open(on: display, near: cursor)
+            palette.open(on: display, near: cursor, window: dragging)
             _ = palette.track(cursor)
             watchEscape()
             return
         }
         // The tab, on the display the pointer is over; reaching it opens the palette there.
         if AppSettings.shared.showsPaletteTab {
-            tab.show(on: display)
+            tab.show(on: display, undo: draggedHasUndo)
             if PaletteTab.reaches(cursor, tab: tab.frame) {
                 dwellTimer?.invalidate()
                 dwellTimer = nil
                 // The tab disappears as the palette slides out where it was.
                 tab.close()
-                palette.openFromTab(on: display)
+                palette.openFromTab(on: display, window: dragging)
                 _ = palette.track(cursor)
                 watchEscape()
                 return
@@ -150,7 +159,7 @@ final class DragWatcher {
         if dwell.update(cursor: cursor, bounds: display.bounds, now: now) {
             dwellTimer?.invalidate()
             tab.close()
-            palette.open(on: display, cursorX: cursor.x)
+            palette.open(on: display, cursorX: cursor.x, window: dragging)
             _ = palette.track(cursor)
             watchEscape()
         } else if EdgeDwell.isAtEdge(cursor, bounds: display.bounds), dwellTimer == nil {
@@ -179,6 +188,15 @@ final class DragWatcher {
                 MainActor.assumeIsolated {
                     Actions.shared.snap(window, to: choice.zone, on: choice.display)
                     Diagnostics.note("palette: snapped \(window.appName) on \(choice.display.name)")
+                }
+            }
+        } else if palette.isOnUndo {
+            palette.close()
+            // As with a snap, the app finishes its own drag first.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                MainActor.assumeIsolated {
+                    let undone = WindowMover.shared.undo(window.element)
+                    Diagnostics.note("palette: \(undone ? "undid" : "found nothing to undo for") the move of \(window.appName)")
                 }
             }
         } else if palette.isOnEditTile {
@@ -222,6 +240,7 @@ final class DragWatcher {
         lastCheck = 0
         gaveUp = false
         dragging = nil
+        undoAnswer = nil
         dwell.reset()
         dwellTimer?.invalidate()
         dwellTimer = nil

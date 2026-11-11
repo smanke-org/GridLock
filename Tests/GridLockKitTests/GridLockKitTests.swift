@@ -237,6 +237,14 @@ struct MoveHistoryTests {
         #expect(h.popLast { $0 != 12 } == 11)
         #expect(h.items.last == 10)
     }
+
+    @Test func removesOneWindowsNewestMoveOnly() {
+        var h = MoveHistory<Int>()
+        for i in [1, 2, 3, 2, 4] { h.push(i) }
+        #expect(h.removeLast { $0 == 2 } == 2)
+        #expect(h.items == [1, 2, 3, 4])
+        #expect(h.removeLast { $0 == 9 } == nil)
+    }
 }
 
 struct URLActionTests {

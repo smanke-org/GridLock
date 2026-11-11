@@ -222,32 +222,46 @@ enum AgentCommands {
 
         // MARK: Settings
 
-        AgentCommand(name: "settings show", summary: "Show GridLock's settings: Ask before quitting, the Dock and menu bar icons, the keys that open the palette mid-drag, and every global shortcut.",
+        AgentCommand(name: "settings show", summary: "Show GridLock's settings: Ask before quitting, the Dock and menu bar icons, the keys that open the palette mid-drag, the palette's undo target and version, and every global shortcut.",
                      example: "gridlock settings show --json", readOnly: true) { _ in
             let settings = AppSettings.shared
             let names: [(NSEvent.ModifierFlags, String)] = [(.control, "control"), (.option, "option"), (.shift, "shift"), (.command, "command")]
             return ["askBeforeQuitting": settings.confirmQuit, "showInDock": settings.showInDock, "showInMenuBar": settings.showInMenuBar,
                     "paletteDragKeys": names.filter { settings.paletteModifiers.contains($0.0) }.map(\.1),
+                    "undoTarget": settings.undoTargetStyle.rawValue, "paletteVersion": settings.showsPaletteVersion,
                     "shortcuts": ShortcutCatalog.all.map { item -> JSONObject in
                         ["id": item.id, "title": item.title, "key": settings.shortcut(item.id)?.display ?? ""]
                     }]
         },
-        AgentCommand(name: "settings set", summary: "Change GridLock's settings from Settings › General. Only the options you give change.",
+        AgentCommand(name: "settings set", summary: "Change GridLock's settings from Settings › General, and the palette's undo target and version from Settings › Palette. Only the options you give change.",
                      params: [.init(name: "ask-before-quitting", kind: .boolean, help: "true or false"),
                               .init(name: "show-in-dock", kind: .boolean, help: "true or false"),
-                              .init(name: "show-in-menu-bar", kind: .boolean, help: "true or false")],
+                              .init(name: "show-in-menu-bar", kind: .boolean, help: "true or false"),
+                              .init(name: "undo-target", help: UndoTargetStyle.allCases.map(\.rawValue).joined(separator: ", ")),
+                              .init(name: "palette-version", kind: .boolean, help: "true or false: GridLock's name and version on the palette")],
                      example: "gridlock settings set --ask-before-quitting false --json") { args in
             let settings = AppSettings.shared
             let quit = try args.bool("ask-before-quitting"), dock = try args.bool("show-in-dock"), menuBar = try args.bool("show-in-menu-bar")
-            guard quit != nil || dock != nil || menuBar != nil else {
-                throw AgentError.usage("give at least one of --ask-before-quitting, --show-in-dock or --show-in-menu-bar")
+            let version = try args.bool("palette-version")
+            var undoTarget: UndoTargetStyle?
+            if let name = args.string("undo-target") {
+                guard let style = UndoTargetStyle.allCases.first(where: { $0.rawValue.lowercased() == name.lowercased() }) else {
+                    throw AgentError.usage("--undo-target must be one of \(UndoTargetStyle.allCases.map(\.rawValue).joined(separator: ", "))")
+                }
+                undoTarget = style
+            }
+            guard quit != nil || dock != nil || menuBar != nil || undoTarget != nil || version != nil else {
+                throw AgentError.usage("give at least one of --ask-before-quitting, --show-in-dock, --show-in-menu-bar, --undo-target or --palette-version")
             }
             var changed = false
+            if let undoTarget, settings.undoTargetStyle != undoTarget { settings.undoTargetStyle = undoTarget; changed = true }
+            if let version, settings.showsPaletteVersion != version { settings.showsPaletteVersion = version; changed = true }
             if let quit, settings.confirmQuit != quit { settings.confirmQuit = quit; changed = true }
             if let dock, settings.showInDock != dock { settings.showInDock = dock; changed = true }
             if let menuBar, settings.showInMenuBar != menuBar { settings.showInMenuBar = menuBar; changed = true }
             var result: JSONObject = ["askBeforeQuitting": settings.confirmQuit, "showInDock": settings.showInDock,
-                                      "showInMenuBar": settings.showInMenuBar, "changed": changed]
+                                      "showInMenuBar": settings.showInMenuBar, "undoTarget": settings.undoTargetStyle.rawValue,
+                                      "paletteVersion": settings.showsPaletteVersion, "changed": changed]
             if !settings.showInDock && !settings.showInMenuBar {
                 result["note"] = AppPresence.hiddenEverywhereNote(appName: "GridLock", settingsName: "Settings")
             }

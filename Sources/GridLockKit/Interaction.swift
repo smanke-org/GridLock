@@ -86,6 +86,12 @@ public struct PaletteGeometry: Equatable, Sendable {
     public let thumbnails: [CGRect]
     public let size: CGSize
 
+    /// Thumbnails already placed, in a box of `size` (`PaletteLayout` moves them onto its shelf).
+    public init(thumbnails: [CGRect], size: CGSize) {
+        self.thumbnails = thumbnails
+        self.size = size
+    }
+
     /// Thumbnails shaped like the display (`aspect` = width / height), as many to a row as
     /// fit in `maxWidth`, wrapping to more rows rather than scrolling.
     public init(count: Int, aspect: Double, maxWidth: CGFloat) {
