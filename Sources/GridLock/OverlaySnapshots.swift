@@ -56,8 +56,6 @@ enum OverlaySnapshots {
                                          style: undoStyle ?? AppSettings.shared.undoTargetStyle, showsUndo: undoStyle != nil,
                                          showsVersion: AppSettings.shared.showsPaletteVersion)
             let frame = model.geometry.frame(under: cursor.x, bounds: bounds, visible: visible)
-            // The bare debug binary has no Info.plist to read a version from.
-            model.versionText = "GridLock 1.0.7"
             if hot {
                 // A window over the undo target: the outline shows where it goes back to.
                 model.undoHot = true

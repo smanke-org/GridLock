@@ -6,7 +6,12 @@ enum AppInfo {
     static let name = "GridLock"
 
     static var version: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String { return version }
+        #if DEBUG
+        // The bare debug binary (snapshot mode) has no Info.plist of its own: read the one it ships with.
+        if let version = NSDictionary(contentsOfFile: "Resources/Info.plist")?["CFBundleShortVersionString"] as? String { return version }
+        #endif
+        return "—"
     }
 
     static var build: String {
