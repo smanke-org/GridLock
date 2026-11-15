@@ -140,7 +140,7 @@ enum Help {
                 ("{shortcut:zone.maximize}", "Snap to the whole display"),
                 ("{shortcut:zone.center}", "Snap to the center"),
             ]),
-            .text("Shortcuts work from any app and act on the frontmost window. Set them in Settings › Shortcuts: click a box and press the keys; Delete clears it. A shortcut another GridLock action already uses is refused, with that action's name."),
+            .text("Shortcuts work from any app and act on the frontmost window. Set them in Settings › Shortcuts: click a shortcut to open its editor, turn on the modifier keys (⌃ ⌥ ⇧ ⌘), type a letter, number or symbol, or pick Space, an arrow or an F-key from the keyboard menu — or just press the shortcut. Shortcuts need ⌘, ⌥ or ⌃, except F-keys. If another GridLock shortcut has the keys, they move to this one and the other is cleared. Clear removes a shortcut."),
             .tip("ShortcutsLens lists GridLock's shortcuts too."),
         ]),
 

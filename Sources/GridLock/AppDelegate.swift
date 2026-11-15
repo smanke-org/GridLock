@@ -45,6 +45,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 HotKeyCenter.shared.apply()
                 startShortcutsLensReport()
             }
+            if let folder = ProcessInfo.processInfo.environment["GRIDLOCK_EDITOR_TEST"] {
+                Task { await ShortcutEditorTest.run(folder: folder) }
+            }
             return
         }
         #endif

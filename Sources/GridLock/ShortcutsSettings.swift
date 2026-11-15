@@ -2,12 +2,10 @@ import AppKit
 import GridLockKit
 import SwiftUI
 
-/// A recorder for every shortcut in `ShortcutCatalog`, grouped as the catalog groups them.
-/// A key another GridLock action already uses is refused, naming that action.
+/// A shortcut box for every shortcut in `ShortcutCatalog`, grouped as the catalog groups them.
+/// Keys another GridLock action already uses move to the one being set; the editor says so first.
 struct ShortcutsSettings: View {
     @AppStorage(SizeCycle.settingsKey) private var cycleOrder = SizeCycle.Order.halfTwoThirdsThird
-    /// The refused key and why, under the row that tried it.
-    @State private var clash: (id: String, message: String)?
 
     private static let categories = ["Grid", "Palette", "Zones", "Displays"]
 
@@ -28,7 +26,7 @@ struct ShortcutsSettings: View {
                 }
             }
             Section {
-                Caption("Shortcuts work in every app. A shortcut another app already uses may not respond.")
+                Caption("Click a shortcut to set it: pick the modifier keys and type a key, or press the shortcut. Keys another GridLock shortcut has are moved here. Shortcuts work in every app; one another app already uses may not respond.")
             }
         }
         .formStyle(.grouped)
@@ -92,28 +90,15 @@ struct ShortcutsSettings: View {
     @ViewBuilder
     private func row(_ item: ShortcutCatalog.Item) -> some View {
         LabeledContent(item.title) {
+            // The editor has already taken these keys off any other shortcut.
             ShortcutRecorder(hotKey: Binding(
                 get: { AppSettings.shared.shortcut(item.id) },
-                set: { set($0, for: item) }))
+                set: { AppSettings.shared.setShortcut(item.id, $0) }), id: item.id)
                 .fixedSize()
         }
-        if let clash, clash.id == item.id {
-            Label(clash.message, systemImage: "exclamationmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.red)
-        }
     }
 
-    private func set(_ key: HotKey?, for item: ShortcutCatalog.Item) {
-        if let key, let owner = Self.clashingAction(key, for: item.id) {
-            clash = (item.id, "\(key.display) is already used by \(owner.title).")
-        } else {
-            clash = nil
-            AppSettings.shared.setShortcut(item.id, key)
-        }
-    }
-
-    /// The other action using this key, if any.
+    /// The other action using this key, if any (ShortcutsLens's Change Shortcut refuses it).
     static func clashingAction(_ key: HotKey, for id: String) -> ShortcutCatalog.Item? {
         func combo(_ k: HotKey) -> [UInt32] { [k.keyCode, k.modifiers] }
         let owner = ShortcutClash.owner(of: combo(key), for: id, among: ShortcutCatalog.all.map(\.id)) {
