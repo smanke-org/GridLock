@@ -196,12 +196,13 @@ enum SnapRingButton: String, CaseIterable {
 }
 
 enum SnapRingStyle: String, CaseIterable {
-    case donut, petals, tail
+    case donut, petals, tail, square
     var title: String {
         switch self {
         case .donut: "Glass donut"
         case .petals: "Split petals"
         case .tail: "Pointer tail"
+        case .square: "Rounded square"
         }
     }
 }

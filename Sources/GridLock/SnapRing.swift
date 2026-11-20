@@ -151,10 +151,10 @@ final class SnapRing {
         }
         let r = Self.panelRadius
         ringPanel.cover(CGRect(x: point.x - r, y: point.y - r, width: 2 * r, height: 2 * r))
-        if ringPanel.contentView !== ringView.superview || ringView.superview == nil {
-            ringPanel.contentView = Self.container(holding: ringView, size: 2 * r)
-        }
+        // Built each time: the glass behind takes the style's shape.
         ringView.style = settings.snapRingStyle
+        ringView.removeFromSuperview()
+        ringPanel.contentView = Self.container(holding: ringView, size: 2 * r)
         ringView.show(pick, offset: .zero)
         ringPanel.alphaValue = 1
         ringPanel.orderFrontRegardless()
@@ -163,12 +163,12 @@ final class SnapRing {
         Diagnostics.note("snapring: opened for \(window?.appName ?? "?") on \(display?.name ?? "?")")
     }
 
-    /// The ring over a glass disc.
+    /// The ring over a glass disc (a rounded square for Rounded square).
     private static func container(holding view: SnapRingView, size: CGFloat) -> NSView {
         let container = NSView(frame: CGRect(x: 0, y: 0, width: size, height: size))
-        let glass = NSGlassEffectView(frame: CGRect(x: size / 2 - discRadius, y: size / 2 - discRadius,
-                                                    width: 2 * discRadius, height: 2 * discRadius))
-        glass.cornerRadius = discRadius
+        let half = view.style == .square ? SnapRingView.squareHalf + 14 : discRadius
+        let glass = NSGlassEffectView(frame: CGRect(x: size / 2 - half, y: size / 2 - half, width: 2 * half, height: 2 * half))
+        glass.cornerRadius = view.style == .square ? SnapRingView.squareCorner + 14 : discRadius
         container.addSubview(glass)
         view.frame = container.bounds
         container.addSubview(view)
@@ -287,6 +287,9 @@ final class SnapRingView: NSView {
     }
 
     private static let half = CGFloat.pi / 8
+    /// Rounded square: half its side and its corner radius, at the middle of the stroke.
+    static let squareHalf: CGFloat = 44
+    static let squareCorner: CGFloat = 22
 
     override func draw(_ dirtyRect: NSRect) {
         let c = CGPoint(x: bounds.midX, y: bounds.midY)
@@ -336,10 +339,36 @@ final class SnapRingView: NSView {
                 Self.dot(end, 4, accent)
             }
             Self.dot(c, 5, pick == .center ? accent : line)
+        case .square:
+            // A thick rounded square; the stretch of it facing the active wedge lights up,
+            // all of it for the center.
+            let h = Self.squareHalf
+            let outline = NSBezierPath(roundedRect: CGRect(x: c.x - h, y: c.y - h, width: 2 * h, height: 2 * h),
+                                       xRadius: Self.squareCorner, yRadius: Self.squareCorner)
+            outline.lineWidth = 10
+            quiet.setStroke()
+            outline.stroke()
+            if pick == .center {
+                accent.setStroke()
+                outline.stroke()
+            } else if let active {
+                NSGraphicsContext.saveGraphicsState()
+                Self.sector(c, 0, 2 * h, active.angle - Self.half, active.angle + Self.half).addClip()
+                accent.setStroke()
+                outline.stroke()
+                if far {
+                    let o = h + 11
+                    let outer = NSBezierPath(roundedRect: CGRect(x: c.x - o, y: c.y - o, width: 2 * o, height: 2 * o),
+                                             xRadius: Self.squareCorner + 11, yRadius: Self.squareCorner + 11)
+                    outer.lineWidth = 3
+                    outer.stroke()
+                }
+                NSGraphicsContext.restoreGraphicsState()
+            }
         }
 
         // The outer tier: a thin arc outside the active wedge.
-        if far, let active, style != .tail {
+        if far, let active, style == .donut || style == .petals {
             accent.setFill()
             Self.sector(c, 58, 62, active.angle - Self.half, active.angle + Self.half).fill()
         }

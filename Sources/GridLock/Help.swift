@@ -121,7 +121,7 @@ enum Help {
                 ("Click the center", "Maximize (or cancel; see Settings)"),
                 ("esc", "Close the ring; nothing moves"),
             ]),
-            .text("Settings › Shortcuts › SnapRing chooses the keys and the button (right-click or click), whether SnapRing moves the frontmost window or the window under the pointer, what a click in the center does, and the ring's style: Glass donut, Split petals or Pointer tail."),
+            .text("Settings › Shortcuts › SnapRing chooses the keys and the button (right-click or click), whether SnapRing moves the frontmost window or the window under the pointer, what a click in the center does, and the ring's style: Glass donut, Split petals, Pointer tail or Rounded square."),
             .tip("The SnapRing click never reaches the app under the pointer. If an app uses the same keys with a click, choose other keys."),
             .tip("In a hurry? Keep the button down after ⌥⌘-right-click, move toward the zone and let go: that snaps too."),
             .tip("Undo Move puts the window back."),

@@ -53,6 +53,7 @@ A Liquid Glass disc about 120 pt across with the ring drawn on top in the accent
 | Glass donut (default) | 8 equal segments; the active one fills with the accent color |
 | Split petals | 8 separated petals; the active one fills and pops outward |
 | Pointer tail | A thick track with an accent arc on the active wedge and a dashed line to the pointer |
+| Rounded square | A thick rounded-square outline on a matching glass square; the stretch facing the active wedge lights up (all of it for the center), and a thin outer line marks the outer tier |
 
 In the outer tier, Glass donut and Split petals add a thin accent arc outside the active
 wedge; Pointer tail's line simply runs farther. The center shows a filled dot when the center
@@ -67,7 +68,7 @@ action is chosen (Maximize or Cancel). The ring appears at once and fades out in
 | `snapRingModifiers` | Hold | any of ⌃⌥⇧⌘; none turns SnapRing off | ⌥⌘ |
 | `snapRingCenter` | Click in the center | Maximize, Cancel | Maximize |
 | `snapRingTarget` | Moves | The frontmost window, The window under the pointer | The frontmost window |
-| `snapRingStyle` | Ring style | Glass donut, Split petals, Pointer tail | Glass donut |
+| `snapRingStyle` | Ring style | Glass donut, Split petals, Pointer tail, Rounded square | Glass donut |
 
 The keys must match exactly (⌥⌘ does not fire on ⇧⌥⌘), so other modifier-clicks still reach
 their apps. A caption warns that the chosen click no longer reaches other apps. Right-click is
