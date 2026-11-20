@@ -88,7 +88,7 @@ final class AppSettings {
         didSet { defaults.set(Int(snapRingModifiers.rawValue), forKey: Key.snapRingModifiers) }
     }
 
-    /// What letting go in SnapRing's center does.
+    /// What a click in SnapRing's center does.
     var snapRingCenter: SnapRingCenter {
         didSet { defaults.set(snapRingCenter.rawValue, forKey: Key.snapRingCenter) }
     }

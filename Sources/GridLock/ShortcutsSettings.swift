@@ -91,11 +91,11 @@ struct ShortcutsSettings: View {
         }
         Caption(settings.snapRingModifiers.isEmpty
                 ? "Off: choose keys to turn SnapRing on."
-                : "Hold \(Self.symbols(settings.snapRingModifiers)), \(settings.snapRingButton == .right ? "right-click" : "click") anywhere and keep the button down, move toward a side or corner and let go: the window snaps there. Move farther for thirds. This click no longer reaches other apps.")
+                : "Hold \(Self.symbols(settings.snapRingModifiers)), \(settings.snapRingButton == .right ? "right-click" : "click") anywhere to open the ring, then click toward a side or corner: the window snaps there. Click farther out for thirds. This click no longer reaches other apps.")
         Picker("Moves", selection: $settings.snapRingTarget) {
             ForEach(SnapRingTarget.allCases, id: \.self) { Text($0.title).tag($0) }
         }
-        Picker("Let go in the center to", selection: $settings.snapRingCenter) {
+        Picker("Click in the center to", selection: $settings.snapRingCenter) {
             ForEach(SnapRingCenter.allCases, id: \.self) { Text($0.title).tag($0) }
         }
         Picker("Ring style", selection: $settings.snapRingStyle) {

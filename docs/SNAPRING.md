@@ -1,7 +1,7 @@
 # SnapRing
 
-Snap a window with one gesture: hold ⌥⌘, right-click anywhere and keep the button down, flick toward a
-side or corner, let go. A small ring appears under the pointer while the button is down and
+Snap a window in two clicks: hold ⌥⌘ and right-click anywhere to open the ring, then click
+toward a side or corner. The ring stays under the pointer until that click (or Esc) and
 shows which part of the display the window will take.
 
 Story: S-033 (docs/STORIES.md). Help topic: "SnapRing". Settings: Shortcuts › SnapRing.
@@ -11,12 +11,15 @@ Story: S-033 (docs/STORIES.md). Help topic: "SnapRing". Settings: Shortcuts › 
 1. Hold the SnapRing keys (⌥⌘ by default) and press the SnapRing button (right by default). GridLock swallows
    the click: the app under the pointer never sees it.
 2. The ring appears centered on the press point, on the display under the pointer.
-3. While the button is down, the direction from the press point to the pointer picks one of
-   8 wedges; the distance picks the tier. An outline on the display shows where the window
-   will go.
-4. Let go to snap. Esc while the button is down cancels: the ring closes, nothing moves.
+3. Let go of the button: the ring stays open. As the pointer moves, the direction from the
+   press point picks one of 8 wedges and the distance picks the tier. An outline on the
+   display shows where the window will go.
+4. Click (either button, no keys needed) to snap to the zone under that click. The click is
+   swallowed. Esc closes the ring; nothing moves.
 
-The modifier keys only have to be down at the press; they may be let go during the flick.
+Shortcut: keep the button down after the opening press, move out of the center and let go;
+that snaps at once (the original hold-and-flick gesture). Letting go in the center leaves the
+ring open for a click.
 
 ## Wedges and tiers
 
@@ -62,7 +65,7 @@ action is chosen (Maximize or Cancel). The ring appears at once and fades out in
 | --- | --- | --- | --- |
 | `snapRingButton` | And | Right-click, Click | Right-click |
 | `snapRingModifiers` | Hold | any of ⌃⌥⇧⌘; none turns SnapRing off | ⌥⌘ |
-| `snapRingCenter` | Let go in the center | Maximize, Cancel | Maximize |
+| `snapRingCenter` | Click in the center | Maximize, Cancel | Maximize |
 | `snapRingTarget` | Moves | The frontmost window, The window under the pointer | The frontmost window |
 | `snapRingStyle` | Ring style | Glass donut, Split petals, Pointer tail | Glass donut |
 

@@ -17,8 +17,21 @@ final class SnapRing {
     /// The glass disc behind the ring.
     static let discRadius: CGFloat = 66
 
-    /// True from a SnapRing press to its release.
-    private(set) var isActive = false
+    /// Where SnapRing is in its gesture.
+    private enum Phase {
+        case idle
+        /// The opening button is still down: a flick and release snaps at once.
+        case opening
+        /// The ring waits for a click on the zone.
+        case open
+        /// Closed; the release of the button that's still down is swallowed.
+        case swallowingRelease
+    }
+
+    private var phase = Phase.idle
+
+    /// True from a SnapRing press until its ring is gone and every button it used is up.
+    var isActive: Bool { phase != .idle }
 
     private var tap: CFMachPort?
     private var retry: Timer?
@@ -47,7 +60,7 @@ final class SnapRing {
     private func installTap() -> Bool {
         guard AXWindows.isTrusted else { return false }
         let types: [CGEventType] = [.leftMouseDown, .leftMouseDragged, .leftMouseUp,
-                                    .rightMouseDown, .rightMouseDragged, .rightMouseUp]
+                                    .rightMouseDown, .rightMouseDragged, .rightMouseUp, .mouseMoved]
         let mask = types.reduce(0) { $0 | (1 << $1.rawValue) }
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
                                           eventsOfInterest: CGEventMask(mask), callback: snapRingTapCallback, userInfo: nil)
@@ -70,16 +83,42 @@ final class SnapRing {
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return false
         case .leftMouseDown, .rightMouseDown:
-            guard !isActive, Self.isChosenButton(type), Self.keysMatch(flags), !Actions.shared.isOverlayOpen else { return false }
-            begin(at: location)
+            switch phase {
+            case .idle:
+                guard Self.isChosenButton(type), Self.keysMatch(flags), !Actions.shared.isOverlayOpen else { return false }
+                begin(at: location)
+            case .open:
+                // Any click picks: the zone under it snaps.
+                follow(location)
+                phase = .swallowingRelease
+                finish()
+            case .opening, .swallowingRelease:
+                break
+            }
             return true
-        case .leftMouseDragged, .rightMouseDragged:
-            guard isActive, Self.isChosenButton(type) else { return false }
+        case .leftMouseDragged, .rightMouseDragged, .mouseMoved:
+            guard phase == .opening || phase == .open else { return phase == .swallowingRelease && type != .mouseMoved }
             follow(location)
-            return true
+            return type != .mouseMoved
         case .leftMouseUp, .rightMouseUp:
-            guard isActive, Self.isChosenButton(type) else { return false }
-            finish()
+            switch phase {
+            case .idle:
+                return false
+            case .opening:
+                // Flicked out of the center with the button down: snap now. Otherwise the
+                // ring stays open for a click.
+                if window == nil || pick != .center {
+                    phase = .idle
+                    finish()
+                } else {
+                    phase = .open
+                    Diagnostics.note("snapring: open, waiting for a click")
+                }
+            case .open:
+                break
+            case .swallowingRelease:
+                phase = .idle
+            }
             return true
         default:
             return false
@@ -100,7 +139,7 @@ final class SnapRing {
     }
 
     private func begin(at point: CGPoint) {
-        isActive = true
+        phase = .opening
         origin = point
         pick = .center
         let settings = AppSettings.shared
@@ -170,16 +209,16 @@ final class SnapRing {
     }
 
     private func cancel() {
-        guard isActive else { return }
+        guard phase == .opening || phase == .open else { return }
+        // While the opening button is down its release still belongs to SnapRing.
+        let held = phase == .opening
         close()
-        // The release still belongs to SnapRing: swallow it.
-        isActive = true
+        phase = held ? .swallowingRelease : .idle
         window = nil
         Diagnostics.note("snapring: closed with Esc")
     }
 
     private func close() {
-        isActive = false
         escapeTimer?.invalidate()
         escapeTimer = nil
         previewPanel.orderOut(nil)
