@@ -37,8 +37,11 @@ GridLock never changes macOS's own window tiling. If "Drag windows to screen edg
 
 <table>
 <tr>
+<td colspan="2" align="center"><img src="docs/images/gridlock-snapring.jpg" alt="SnapRing in its three styles, each pointing at the top-right quarter: Glass donut, Split petals with the outer arc for thirds, and Pointer tail"><br><sub><b>SnapRing.</b> ⌥⌘-right-click, then click toward a side or corner. Three ring styles: Glass donut, Split petals (the outer arc means a third) and Pointer tail.</sub></td>
+</tr>
+<tr>
 <td width="50%"><img src="docs/images/gridlock-grid.jpg" alt="Show Grid over a display: a 6 × 4 grid with Safari's window outlined and columns 4 to 6 of rows 1 and 2 selected, labeled 708 × 386, with the key hints at the bottom"><br><sub><b>Show Grid.</b> Draw the cells a window should fill, or move the selection with the arrow keys.</sub></td>
-<td width="50%" align="center"><img src="docs/images/gridlock-settings-shortcuts.webp" width="360" alt="Settings, Shortcuts: Show Grid, Undo Move and Open Palette shortcuts, and Hold while dragging with Command selected"><br><sub><b>Shortcuts.</b> Open Palette, and the keys to hold while dragging.</sub></td>
+<td width="50%" align="center"><img src="docs/images/gridlock-settings-shortcuts.webp" width="360" alt="Settings, Shortcuts: Show Grid, Undo Move and Open Palette shortcuts, Hold while dragging with Command selected, and the SnapRing section with Option and Command, Right-click, The frontmost window, Maximize and Glass donut"><br><sub><b>Shortcuts.</b> Open Palette, the keys to hold while dragging, and SnapRing.</sub></td>
 </tr>
 <tr>
 <td width="50%" align="center"><img src="docs/images/gridlock-settings-desks.webp" width="360" alt="Settings, Desks: the current desk with its two displays drawn to scale and the selected display's grid of 6 columns and 4 rows, gap and margin"><br><sub><b>Desks.</b> Each display at each desk keeps its own grid.</sub></td>
