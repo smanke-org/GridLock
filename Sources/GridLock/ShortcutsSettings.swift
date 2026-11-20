@@ -24,6 +24,7 @@ struct ShortcutsSettings: View {
                         }
                     }
                 }
+                if category == "Palette" { Section("SnapRing") { snapRing } }
             }
             Section {
                 Caption("Click a shortcut to set it: pick the modifier keys and type a key, or press the shortcut. Keys another GridLock shortcut has are moved here. Shortcuts work in every app; one another app already uses may not respond.")
@@ -62,6 +63,43 @@ struct ShortcutsSettings: View {
             Label("⌃ alone turns a click into a right-click: press it after you start dragging.", systemImage: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundStyle(.orange)
+        }
+    }
+
+    /// The keys that open SnapRing on a click, and how it behaves.
+    @ViewBuilder
+    private var snapRing: some View {
+        @Bindable var settings = AppSettings.shared
+        LabeledContent("Hold") {
+            HStack(spacing: 4) {
+                ForEach(AppSettings.dragModifierChoices, id: \.rawValue) { key in
+                    Toggle(isOn: Binding(
+                        get: { settings.snapRingModifiers.contains(key) },
+                        set: { on in
+                            if on { settings.snapRingModifiers.insert(key) } else { settings.snapRingModifiers.remove(key) }
+                        })) {
+                        Text(Self.symbol(key)).frame(minWidth: 18)
+                    }
+                    .toggleStyle(.button)
+                    .accessibilityLabel(Self.name(key))
+                    .help("Hold \(Self.name(key)) and click to open SnapRing")
+                }
+            }
+        }
+        Picker("And", selection: $settings.snapRingButton) {
+            ForEach(SnapRingButton.allCases, id: \.self) { Text($0.title).tag($0) }
+        }
+        Caption(settings.snapRingModifiers.isEmpty
+                ? "Off: choose keys to turn SnapRing on."
+                : "Hold \(Self.symbols(settings.snapRingModifiers)), \(settings.snapRingButton == .right ? "right-click" : "click") anywhere and keep the button down, move toward a side or corner and let go: the window snaps there. Move farther for thirds. This click no longer reaches other apps.")
+        Picker("Moves", selection: $settings.snapRingTarget) {
+            ForEach(SnapRingTarget.allCases, id: \.self) { Text($0.title).tag($0) }
+        }
+        Picker("Let go in the center to", selection: $settings.snapRingCenter) {
+            ForEach(SnapRingCenter.allCases, id: \.self) { Text($0.title).tag($0) }
+        }
+        Picker("Ring style", selection: $settings.snapRingStyle) {
+            ForEach(SnapRingStyle.allCases, id: \.self) { Text($0.title).tag($0) }
         }
     }
 

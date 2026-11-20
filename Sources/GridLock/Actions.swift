@@ -26,6 +26,7 @@ final class Actions {
     func startInteraction() {
         showGridHandler = { GridOverlay.shared.toggle() }
         DragWatcher.shared.start()
+        SnapRing.shared.start()
         assert(Set(ShortcutCatalog.all.map(\.id).filter { $0.hasPrefix("zone.") }.map { String($0.dropFirst(5)) })
                == Set(Actions.namedZones.keys), "every named zone has a shortcut row")
         Diagnostics.note("macOS edge tiling: \(SystemEdgeTiling.shared.isOn ? "on" : "off")")
@@ -51,10 +52,14 @@ final class Actions {
 
     @discardableResult
     func snap(_ window: TargetWindow, to zone: UnitRect, on display: LiveDisplay) -> Bool {
-        let grid = desks.settings(for: display).grid
-        let frame = GridMath.frame(for: zone, visible: display.visible, gap: grid.gap, margin: grid.margin)
-        WindowMover.shared.move(window, to: frame)
+        WindowMover.shared.move(window, to: frame(for: zone, on: display))
         return true
+    }
+
+    /// Where a zone of a display is, with that display's gap and margin at the current desk.
+    func frame(for zone: UnitRect, on display: LiveDisplay) -> CGRect {
+        let grid = desks.settings(for: display).grid
+        return GridMath.frame(for: zone, visible: display.visible, gap: grid.gap, margin: grid.margin)
     }
 
     @discardableResult

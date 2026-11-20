@@ -342,6 +342,17 @@ Acceptance:
 - [self] Order follows the displays left to right, wrapping.
 Status: done
 
+### S-033 SnapRing
+As the user, I hold ⌥⌘, right-click, flick toward a side or corner and let go, and the frontmost window snaps there.
+Screens: settings-shortcuts, snapring-donut, snapring-petals, snapring-tail
+Depends: S-021
+Spec: docs/SNAPRING.md
+Acceptance:
+- [unit] Offsets map to center, 8 wedges, and two tiers (halves/quarters, thirds).
+- [snap] Settings › Shortcuts › SnapRing: keys, button, center action, target window, ring style.
+- [self] The click never reaches the app under the pointer; Esc cancels; Undo Move undoes the snap.
+Status: done
+
 ## M5 System
 
 ### S-040 Menu bar menu

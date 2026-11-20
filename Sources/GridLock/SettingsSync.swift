@@ -43,6 +43,7 @@ final class SettingsSync: ObservableObject {
         "shortcuts",
         "paletteModifiers",
         "paletteTab", "paletteUndoTarget", "paletteVersion",
+        "snapRingModifiers", "snapRingCenter", "snapRingTarget", "snapRingStyle", "snapRingButton",
         "confirmQuit", UpdatePolicy.key, UpdateInterval.valueKey, UpdateInterval.unitKey,
     ]
 
@@ -53,6 +54,8 @@ final class SettingsSync: ObservableObject {
         "showInDock": false, "showInMenuBar": true, MenuHub.foldKey: true, AppAppearance.key: AppAppearance.system.rawValue,
         "paletteModifiers": Int(NSEvent.ModifierFlags.command.rawValue),
         "paletteTab": true, "paletteUndoTarget": UndoTargetStyle.standard.rawValue, "paletteVersion": true,
+        "snapRingModifiers": Int(NSEvent.ModifierFlags([.option, .command]).rawValue),
+        "snapRingCenter": "maximize", "snapRingTarget": "frontmost", "snapRingStyle": "donut", "snapRingButton": "right",
     ]
 
     private var localModified: Date? {

@@ -27,6 +27,11 @@ final class AppSettings {
         static let paletteTab = "paletteTab"
         static let undoTarget = "paletteUndoTarget"
         static let paletteVersion = "paletteVersion"
+        static let snapRingModifiers = "snapRingModifiers"
+        static let snapRingCenter = "snapRingCenter"
+        static let snapRingTarget = "snapRingTarget"
+        static let snapRingStyle = "snapRingStyle"
+        static let snapRingButton = "snapRingButton"
     }
 
     /// The keys that may be held to open the palette mid-drag.
@@ -77,6 +82,31 @@ final class AppSettings {
         didSet { defaults.set(showsPaletteVersion, forKey: Key.paletteVersion) }
     }
 
+    /// Held while pressing the mouse button, these open SnapRing (Settings › Shortcuts).
+    /// Empty: SnapRing is off.
+    var snapRingModifiers: NSEvent.ModifierFlags {
+        didSet { defaults.set(Int(snapRingModifiers.rawValue), forKey: Key.snapRingModifiers) }
+    }
+
+    /// What letting go in SnapRing's center does.
+    var snapRingCenter: SnapRingCenter {
+        didSet { defaults.set(snapRingCenter.rawValue, forKey: Key.snapRingCenter) }
+    }
+
+    /// Which window SnapRing moves.
+    var snapRingTarget: SnapRingTarget {
+        didSet { defaults.set(snapRingTarget.rawValue, forKey: Key.snapRingTarget) }
+    }
+
+    /// The mouse button that opens SnapRing with the keys held.
+    var snapRingButton: SnapRingButton {
+        didSet { defaults.set(snapRingButton.rawValue, forKey: Key.snapRingButton) }
+    }
+
+    var snapRingStyle: SnapRingStyle {
+        didSet { defaults.set(snapRingStyle.rawValue, forKey: Key.snapRingStyle) }
+    }
+
     /// Shortcut id → key. A missing id means "the default"; an id stored as null means the
     /// user cleared it.
     private var shortcuts: [String: HotKey?]
@@ -90,6 +120,11 @@ final class AppSettings {
         showsPaletteTab = defaults.object(forKey: Key.paletteTab) as? Bool ?? true
         undoTargetStyle = Self.loadUndoTarget(from: defaults)
         showsPaletteVersion = defaults.object(forKey: Key.paletteVersion) as? Bool ?? true
+        snapRingModifiers = Self.loadSnapRingModifiers(from: defaults)
+        snapRingCenter = defaults.string(forKey: Key.snapRingCenter).flatMap(SnapRingCenter.init) ?? .maximize
+        snapRingTarget = defaults.string(forKey: Key.snapRingTarget).flatMap(SnapRingTarget.init) ?? .frontmost
+        snapRingStyle = defaults.string(forKey: Key.snapRingStyle).flatMap(SnapRingStyle.init) ?? .donut
+        snapRingButton = defaults.string(forKey: Key.snapRingButton).flatMap(SnapRingButton.init) ?? .right
     }
 
     func shortcut(_ id: String) -> HotKey? {
@@ -115,6 +150,11 @@ final class AppSettings {
         showsPaletteTab = defaults.object(forKey: Key.paletteTab) as? Bool ?? true
         undoTargetStyle = Self.loadUndoTarget(from: defaults)
         showsPaletteVersion = defaults.object(forKey: Key.paletteVersion) as? Bool ?? true
+        snapRingModifiers = Self.loadSnapRingModifiers(from: defaults)
+        snapRingCenter = defaults.string(forKey: Key.snapRingCenter).flatMap(SnapRingCenter.init) ?? .maximize
+        snapRingTarget = defaults.string(forKey: Key.snapRingTarget).flatMap(SnapRingTarget.init) ?? .frontmost
+        snapRingStyle = defaults.string(forKey: Key.snapRingStyle).flatMap(SnapRingStyle.init) ?? .donut
+        snapRingButton = defaults.string(forKey: Key.snapRingButton).flatMap(SnapRingButton.init) ?? .right
     }
 
     private static func loadUndoTarget(from defaults: UserDefaults) -> UndoTargetStyle {
@@ -127,9 +167,41 @@ final class AppSettings {
         return NSEvent.ModifierFlags(rawValue: UInt(raw)).intersection([.control, .option, .shift, .command])
     }
 
+    /// ⌥⌘ unless the user chose otherwise.
+    private static func loadSnapRingModifiers(from defaults: UserDefaults) -> NSEvent.ModifierFlags {
+        guard let raw = defaults.object(forKey: Key.snapRingModifiers) as? Int else { return [.option, .command] }
+        return NSEvent.ModifierFlags(rawValue: UInt(raw)).intersection([.control, .option, .shift, .command])
+    }
+
     private static func loadShortcuts(from defaults: UserDefaults) -> [String: HotKey?] {
         guard let data = defaults.data(forKey: Key.shortcuts),
               let decoded = try? JSONDecoder().decode([String: HotKey?].self, from: data) else { return [:] }
         return decoded
+    }
+}
+
+enum SnapRingCenter: String, CaseIterable {
+    case maximize, cancel
+    var title: String { self == .maximize ? "Maximize" : "Cancel" }
+}
+
+enum SnapRingTarget: String, CaseIterable {
+    case frontmost, underPointer
+    var title: String { self == .frontmost ? "The frontmost window" : "The window under the pointer" }
+}
+
+enum SnapRingButton: String, CaseIterable {
+    case right, left
+    var title: String { self == .right ? "Right-click" : "Click" }
+}
+
+enum SnapRingStyle: String, CaseIterable {
+    case donut, petals, tail
+    var title: String {
+        switch self {
+        case .donut: "Glass donut"
+        case .petals: "Split petals"
+        case .tail: "Pointer tail"
+        }
     }
 }

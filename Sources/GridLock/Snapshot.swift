@@ -43,7 +43,7 @@ enum Snapshot {
 
     static var pages: [String] {
         ["settings-general", "settings-desks", "settings-palette", "settings-layouts", "settings-shortcuts"]
-            + deskPages + OverlaySnapshots.pages
+            + deskPages + OverlaySnapshots.pages + SnapRing.snapshotPages
             + Help.topics.map { "help-\($0.id)" } + ["icon", "menu", "update-prompt", "about"]
     }
 
@@ -80,6 +80,7 @@ enum Snapshot {
             return SettingsWindow.shared.debugWindow
         }
         if OverlaySnapshots.pages.contains(page) { return await OverlaySnapshots.render(page) }
+        if SnapRing.snapshotPages.contains(page) { return SnapRing.snapshotWindow(page) }
         if page == "icon" { return iconWindow() }
         if page == "about" {
             // The notes come from GitHub; give them a moment.

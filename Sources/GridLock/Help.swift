@@ -112,6 +112,19 @@ enum Help {
             .tip("If macOS's own \"Drag windows to screen edges to tile\" is on, it competes with the palette. Settings › General says so and opens the right page of System Settings; GridLock never changes the setting itself."),
         ]),
 
+        HelpTopic(id: "snapring", title: "SnapRing", symbol: "circle.dashed", blocks: [
+            .text("Hold ⌥⌘ and right-click anywhere: a small ring appears under the pointer. Keep the button down, move toward a side or corner, and let go. The frontmost window snaps there, on the display where you clicked, and an outline shows where it will go before you let go."),
+            .keys([
+                ("Toward a side", "Left, right, top or bottom half"),
+                ("Toward a corner", "That quarter of the display"),
+                ("Farther out", "A third instead of a half"),
+                ("Let go in the center", "Maximize (or cancel; see Settings)"),
+                ("esc", "Close the ring; nothing moves"),
+            ]),
+            .text("Settings › Shortcuts › SnapRing chooses the keys and the button (right-click or click), whether SnapRing moves the frontmost window or the window under the pointer, what letting go in the center does, and the ring's style: Glass donut, Split petals or Pointer tail."),
+            .tip("The SnapRing click never reaches the app under the pointer. If an app uses the same keys with a click, choose other keys."),
+            .tip("Undo Move puts the window back."),
+        ]),
         HelpTopic(id: "desks", title: "Desks", symbol: "display.2", blocks: [
             .text("A desk is one set of connected displays. When you plug in or unplug a display, GridLock waits for things to settle, then switches to that desk's grids and palettes. A desk it hasn't seen starts from the most similar desk it knows: the same display elsewhere first, then one of the same resolution, else the defaults."),
             .text("Settings › Desks shows the current desk. Choose a display to set its grid: columns, rows, gap and margin. Each display keeps its own settings at each desk."),

@@ -86,7 +86,7 @@ final class DragWatcher {
     }
 
     private func dragged() {
-        guard let downAt, AXWindows.isTrusted, !GridOverlay.shared.isShowing, !PaletteOverlay.shared.isOpenedByShortcut else { return }
+        guard let downAt, AXWindows.isTrusted, !SnapRing.shared.isActive, !GridOverlay.shared.isShowing, !PaletteOverlay.shared.isOpenedByShortcut else { return }
         if dragging == nil {
             guard !gaveUp else { return }
             if candidate == nil {
@@ -266,7 +266,7 @@ final class DragWatcher {
     /// The window of another app under a point. The window server says which window is on
     /// top there (Accessibility's own hit test answered "menu bar" for some apps); its
     /// app's Accessibility windows are then matched to it by frame.
-    private static func window(at point: CGPoint) -> TargetWindow? {
+    static func window(at point: CGPoint) -> TargetWindow? {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
                 as? [[String: Any]] else { return nil }
         let own = ProcessInfo.processInfo.processIdentifier
